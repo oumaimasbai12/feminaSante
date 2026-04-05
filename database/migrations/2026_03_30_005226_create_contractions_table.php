@@ -14,13 +14,14 @@ return new class extends Migration
             $table->dateTime('start_time');
             $table->dateTime('end_time')->nullable();
             $table->integer('duration_seconds');
-            $table->integer('interval_seconds')->nullable();
+            $table->integer('interval_seconds');
             $table->enum('intensity', ['mild', 'moderate', 'strong', 'very strong'])->nullable();
-            $table->boolean('is_active')->default(true);
+            $table->boolean('is_active')->default(false);
             $table->text('notes')->nullable();
-            $table->timestamps();
+            $table->timestamp('created_at')->useCurrent();
 
-            $table->index('start_time');
+            $table->index('pregnancy_id', 'contractions_idx_pregnancy_id');
+            $table->index('start_time', 'contractions_idx_start_time');
         });
     }
 

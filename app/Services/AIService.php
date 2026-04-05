@@ -22,7 +22,16 @@ class AIService
 
         if ($intent === 'urgent') {
             return [
-                'response' => "Si la situation semble urgente, consulte rapidement un professionnel de sante ou rends-toi aux urgences. Cet assistant ne remplace pas un avis medical.",
+                'response' => 'Si la situation semble urgente, consulte rapidement un professionnel de santé ou rends-toi aux urgences. Cet assistant ne remplace pas un avis médical.',
+                'intent' => $intent,
+                'sentiment' => $sentiment,
+                'context' => $context,
+            ];
+        }
+
+        if ($intent === 'symptom_question') {
+            return [
+                'response' => 'Les symptômes comme la douleur ou les saignements méritent souvent un avis professionnel. Utilise aussi notre encyclopédie médicale pour t\'informer, sans te substituer à une consultation.',
                 'intent' => $intent,
                 'sentiment' => $sentiment,
                 'context' => $context,
@@ -30,7 +39,7 @@ class AIService
         }
 
         return [
-            'response' => "Merci pour ton message. Cette premiere version de l'assistant donne un accompagnement educatif uniquement. Pour une question medicale precise, consulte un professionnel de sante.",
+            'response' => 'Merci pour ton message. Cette première version de l\'assistant donne un accompagnement éducatif uniquement. Pour une question médicale précise, consulte un professionnel de santé.',
             'intent' => $intent,
             'sentiment' => $sentiment,
             'context' => $context,

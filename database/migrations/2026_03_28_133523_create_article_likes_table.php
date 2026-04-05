@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('article_likes', function (Blueprint $table) {
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->foreignId('article_id')->constrained('articles')->cascadeOnDelete();
-            $table->timestamps();
+            $table->timestamp('created_at')->useCurrent();
 
             $table->primary(['user_id', 'article_id']);
         });

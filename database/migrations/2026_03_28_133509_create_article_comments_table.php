@@ -16,9 +16,9 @@ return new class extends Migration
             $table->text('content');
             $table->boolean('is_approved')->default(false);
             $table->integer('likes_count')->default(0);
-            $table->timestamps();
+            $table->timestamp('created_at')->useCurrent();
 
-            $table->index('article_id');
+            $table->index('article_id', 'article_comments_idx_article_id');
         });
     }
 

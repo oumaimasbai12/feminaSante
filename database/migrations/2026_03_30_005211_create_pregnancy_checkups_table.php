@@ -27,13 +27,13 @@ return new class extends Migration
             $table->string('doctor_name')->nullable();
             $table->string('hospital_name')->nullable();
             $table->decimal('weight', 5, 2)->nullable();
-            $table->smallInteger('blood_pressure_systolic')->nullable();
-            $table->smallInteger('blood_pressure_diastolic')->nullable();
+            $table->smallInteger('blood_pressure_systolic');
+            $table->smallInteger('blood_pressure_diastolic');
             $table->decimal('fundal_height', 4, 1)->nullable();
             $table->string('fetal_heart_rate', 20)->nullable();
             $table->json('observations')->nullable();
             $table->json('prescriptions')->nullable();
-            $table->date('next_appointment')->nullable();
+            $table->date('next_appointement')->nullable();
             $table->text('notes')->nullable();
             $table->timestamps();
         });

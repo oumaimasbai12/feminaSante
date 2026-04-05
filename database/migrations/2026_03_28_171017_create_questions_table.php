@@ -17,7 +17,7 @@ return new class extends Migration
             $table->integer('display_order');
             $table->text('explanation')->nullable();
             $table->string('img_url')->nullable();
-            $table->timestamps();
+            $table->timestamp('created_at')->useCurrent();
         });
     }
 

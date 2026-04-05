@@ -18,7 +18,7 @@ return new class extends Migration
             $table->json('answers');
             $table->integer('time_spent')->nullable();
             $table->timestamp('completed_at');
-            $table->timestamps();
+            $table->timestamp('created_at')->useCurrent();
         });
     }
 

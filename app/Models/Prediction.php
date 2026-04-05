@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Prediction extends Model
 {
+    public const UPDATED_AT = null;
+
     protected $fillable = [
         'user_id',
         'predicted_date',

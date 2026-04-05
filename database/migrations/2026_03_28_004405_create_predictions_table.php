@@ -15,9 +15,10 @@ return new class extends Migration
             $table->enum('type', ['period', 'ovulation', 'fertile_window']);
             $table->enum('confidence', ['low', 'medium', 'high'])->default('medium');
             $table->smallInteger('cycle_length_avg')->nullable();
-            $table->timestamps();
+            $table->timestamp('created_at')->useCurrent();
 
-            $table->index('predicted_date');
+            $table->index('user_id', 'predictions_idx_user_id');
+            $table->index('predicted_date', 'predictions_idx_predicted_date');
         });
     }
 

@@ -16,9 +16,10 @@ return new class extends Migration
             $table->time('end_time');
             $table->boolean('is_available')->default(true);
             $table->enum('recurrence', ['none', 'weekly', 'biweekly', 'monthly'])->default('none');
-            $table->timestamps();
+            $table->timestamp('created_at')->useCurrent();
 
-            $table->index('date');
+            $table->index('gynecologist_id', 'availabilities_idx_gynecologist_id');
+            $table->index('date', 'availabilities_idx_date');
         });
     }
 

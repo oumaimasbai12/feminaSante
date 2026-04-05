@@ -22,10 +22,14 @@ class SymptomController extends Controller
             'nom' => ['required', 'string', 'max:100'],
             'category' => ['required', 'in:physical,emotional,other'],
             'icon' => ['nullable', 'string', 'max:50'],
+            'descriptions' => ['nullable', 'string'],
             'description' => ['nullable', 'string'],
         ]);
 
-        $symptom = Symptom::create($data);
+        $symptom = Symptom::create([
+            ...$data,
+            'descriptions' => $data['descriptions'] ?? $data['description'] ?? null,
+        ]);
 
         return response()->json([
             'message' => 'Symptom created successfully.',

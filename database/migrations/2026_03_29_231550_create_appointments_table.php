@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('appointments', function (Blueprint $table) {
+        Schema::create('appointements', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->foreignId('gynecologist_id')->constrained('gynecologists')->cascadeOnDelete();
@@ -22,14 +22,16 @@ return new class extends Migration
             $table->string('cancellation_reason')->nullable();
             $table->tinyInteger('rating')->nullable();
             $table->text('review')->nullable();
-            $table->timestamps();
+            $table->timestamp('created_at')->useCurrent();
 
-            $table->index('start_time');
+            $table->index('user_id', 'appointements_idx_user_id');
+            $table->index('gynecologist_id', 'appointements_idx_gynecologist_id');
+            $table->index('start_time', 'appointements_idx_start_time');
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('appointments');
+        Schema::dropIfExists('appointements');
     }
 };

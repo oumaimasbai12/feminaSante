@@ -16,7 +16,9 @@ return new class extends Migration
             $table->string('icon', 50)->nullable();
             $table->string('color', 20)->nullable();
             $table->integer('display_order')->default(0);
-            $table->timestamps();
+            $table->timestamp('created_at')->useCurrent();
+
+            $table->index('slug', 'article_categories_idx_slug');
         });
     }
 

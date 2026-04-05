@@ -13,8 +13,8 @@ return new class extends Migration
             $table->string('nom', 100);
             $table->enum('category', ['physical', 'emotional', 'other'])->default('physical');
             $table->string('icon', 50)->nullable();
-            $table->text('description')->nullable();
-            $table->timestamps();
+            $table->text('descriptions')->nullable();
+            $table->timestamp('created_at')->useCurrent();
         });
     }
 

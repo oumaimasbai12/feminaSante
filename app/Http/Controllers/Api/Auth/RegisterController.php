@@ -13,15 +13,31 @@ class RegisterController extends Controller
     public function __invoke(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'nom' => ['required_without:name', 'string', 'max:255'],
+            'name' => ['required_without:nom', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'motDePasse' => ['required_without:password', 'string', 'min:8', 'confirmed'],
+            'password' => ['required_without:motDePasse', 'string', 'min:8', 'confirmed'],
+            'birth_date' => ['nullable', 'date'],
+            'gender' => ['nullable', 'in:female,male,other'],
+            'blood_type' => ['nullable', 'string', 'max:5'],
+            'emergency_contacts' => ['nullable', 'array'],
+            'medical_history' => ['nullable', 'array'],
+            'notification_settings' => ['nullable', 'array'],
+            'langage' => ['nullable', 'string', 'max:10'],
         ]);
 
         $user = User::create([
-            'name' => $data['name'],
+            'nom' => $data['nom'] ?? $data['name'],
             'email' => $data['email'],
-            'password' => Hash::make($data['password']),
+            'motDePasse' => Hash::make($data['motDePasse'] ?? $data['password']),
+            'birth_date' => $data['birth_date'] ?? null,
+            'gender' => $data['gender'] ?? 'female',
+            'blood_type' => $data['blood_type'] ?? null,
+            'emergency_contacts' => $data['emergency_contacts'] ?? null,
+            'medical_history' => $data['medical_history'] ?? null,
+            'notification_settings' => $data['notification_settings'] ?? null,
+            'langage' => $data['langage'] ?? 'fr',
         ]);
 
         $token = $user->createToken('auth_token')->plainTextToken;

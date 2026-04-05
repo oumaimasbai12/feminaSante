@@ -15,7 +15,7 @@ return new class extends Migration
             $table->date('due_date')->nullable();
             $table->date('conception_date')->nullable();
             $table->enum('pregnancy_type', ['simple', 'twins', 'triplets', 'multiples'])->default('simple');
-            $table->enum('status', ['ongoing', 'completed', 'miscarriage', 'terminated'])->default('ongoing');
+            $table->enum('statuts', ['ongoing', 'completed', 'miscarriage', 'terminated'])->default('ongoing');
             $table->boolean('high_risk')->default(false);
             $table->text('risk_factors')->nullable();
             $table->string('blood_type', 5)->nullable();

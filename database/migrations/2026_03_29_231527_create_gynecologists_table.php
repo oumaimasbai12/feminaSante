@@ -12,11 +12,11 @@ return new class extends Migration
             $table->id();
             $table->string('first_name', 100);
             $table->string('last_name', 100);
-            $table->string('speciality')->default('Gynecologie');
+            $table->string('speciality', 100)->default('gynecologie');
             $table->string('license_number')->nullable()->unique();
             $table->string('email')->nullable();
             $table->string('phone', 20)->nullable();
-            $table->text('address');
+            $table->text('adress');
             $table->string('city', 100);
             $table->string('postal_code', 20)->nullable();
             $table->json('consultation_type')->nullable();
@@ -27,10 +27,11 @@ return new class extends Migration
             $table->decimal('rating', 3, 2)->default(0);
             $table->integer('review_count')->default(0);
             $table->boolean('is_active')->default(true);
-            $table->timestamps();
+            $table->timestamp('created_at')->useCurrent();
+            $table->timestamp('updated_at')->useCurrent()->useCurrentOnUpdate();
 
-            $table->index('city');
-            $table->index('rating');
+            $table->index('city', 'gynecologists_idx_city');
+            $table->index('rating', 'gynecologists_idx_rating');
         });
     }
 

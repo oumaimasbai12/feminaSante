@@ -19,7 +19,8 @@ class ProfileController extends Controller
         $user = $request->user();
 
         $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'nom' => ['required_without:name', 'string', 'max:255'],
+            'name' => ['required_without:nom', 'string', 'max:255'],
             'email' => [
                 'required',
                 'string',
@@ -27,9 +28,19 @@ class ProfileController extends Controller
                 'max:255',
                 Rule::unique('users', 'email')->ignore($user->id),
             ],
+            'birth_date' => ['nullable', 'date'],
+            'gender' => ['nullable', 'in:female,male,other'],
+            'blood_type' => ['nullable', 'string', 'max:5'],
+            'emergency_contacts' => ['nullable', 'array'],
+            'medical_history' => ['nullable', 'array'],
+            'notification_settings' => ['nullable', 'array'],
+            'langage' => ['nullable', 'string', 'max:10'],
         ]);
 
-        $user->update($data);
+        $user->update([
+            ...$data,
+            'nom' => $data['nom'] ?? $data['name'],
+        ]);
 
         return response()->json([
             'message' => 'Profile updated successfully.',

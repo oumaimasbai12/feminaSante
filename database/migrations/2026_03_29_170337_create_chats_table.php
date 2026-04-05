@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('sentiment', 50)->nullable();
             $table->json('context')->nullable();
             $table->timestamp('completed_at')->nullable();
-            $table->timestamps();
+            $table->timestamp('created_at')->useCurrent();
 
             $table->index('session_id');
             $table->index('created_at');

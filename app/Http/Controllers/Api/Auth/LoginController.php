@@ -14,12 +14,15 @@ class LoginController extends Controller
     {
         $data = $request->validate([
             'email' => ['required', 'string', 'email'],
-            'password' => ['required', 'string'],
+            'motDePasse' => ['required_without:password', 'string'],
+            'password' => ['required_without:motDePasse', 'string'],
         ]);
 
         $user = User::where('email', $data['email'])->first();
 
-        if (! $user || ! Hash::check($data['password'], $user->password)) {
+        $password = $data['motDePasse'] ?? $data['password'];
+
+        if (! $user || ! Hash::check($password, $user->motDePasse)) {
             return response()->json([
                 'message' => 'Invalid credentials.',
             ], 401);

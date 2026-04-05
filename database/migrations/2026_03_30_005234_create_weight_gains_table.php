@@ -13,12 +13,13 @@ return new class extends Migration
             $table->foreignId('pregnancy_id')->constrained('pregnancies')->cascadeOnDelete();
             $table->date('date');
             $table->smallInteger('week');
-            $table->decimal('weight', 5, 2);
+            $table->decimal('weight', 4, 2);
             $table->decimal('bmi', 4, 1)->nullable();
             $table->text('notes')->nullable();
-            $table->timestamps();
+            $table->timestamp('created_at')->useCurrent();
 
-            $table->index('date');
+            $table->index('pregnancy_id', 'weight_gains_idx_pregnancy_id');
+            $table->index('date', 'weight_gains_idx_date');
         });
     }
 

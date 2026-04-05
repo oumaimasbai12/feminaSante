@@ -18,9 +18,10 @@ return new class extends Migration
             $table->enum('time_to_10_kicks', ['<30min', '30-60min', '1-2hours', '>2hours'])->nullable();
             $table->enum('activity_level', ['low', 'normal', 'high'])->nullable();
             $table->text('notes')->nullable();
-            $table->timestamps();
+            $table->timestamp('created_at')->useCurrent();
 
-            $table->index('date');
+            $table->index('pregnancy_id', 'kick_counters_idx_pregnancy_id');
+            $table->index('date', 'kick_counters_idx_date');
         });
     }
 

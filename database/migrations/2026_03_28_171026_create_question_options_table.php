@@ -14,7 +14,6 @@ return new class extends Migration
             $table->text('option_text');
             $table->boolean('is_correct')->default(false);
             $table->integer('display_order');
-            $table->timestamps();
         });
     }
 
