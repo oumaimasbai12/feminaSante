@@ -1,3 +1,67 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+    body { font-family: 'Inter', sans-serif; }
+    h1, h2, h3 { font-family: 'Inter', sans-serif; }
+}
+
+@layer utilities {
+    .text-gradient {
+        background: linear-gradient(135deg, #F43F5E, #EC4899, #A855F7);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    .bg-gradient-femina { background: linear-gradient(135deg, #F43F5E 0%, #EC4899 50%, #A855F7 100%); }
+    .glass {
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+    }
+    .card-hover { transition: all 0.3s ease; }
+    .card-hover:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(236, 72, 153, 0.12); }
+    .btn-primary {
+        background: linear-gradient(135deg, #EC4899, #A855F7);
+        color: white;
+        font-weight: 600;
+        border-radius: 12px;
+        padding: 12px 24px;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(236, 72, 153, 0.3);
+    }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 25px rgba(236, 72, 153, 0.4); }
+    .input-field {
+        width: 100%;
+        padding: 12px 16px;
+        border-radius: 12px;
+        border: 1.5px solid #FCE7F3;
+        background: white;
+        outline: none;
+        transition: all 0.2s;
+        color: #1f2937;
+        font-size: 0.95rem;
+    }
+    .input-field:focus { border-color: #EC4899; box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.1); }
+    .card { background: white; border-radius: 20px; box-shadow: 0 2px 20px rgba(0,0,0,0.06); border: 1px solid rgba(252, 231, 243, 0.5); padding: 24px; }
+    .sidebar-nav::-webkit-scrollbar { width: 4px; }
+    .sidebar-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
+    .animation-delay-2000 { animation-delay: 2s; }
+    .animation-delay-4000 { animation-delay: 4s; }
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #FFF0F5; }
+::-webkit-scrollbar-thumb { background: linear-gradient(#EC4899, #A855F7); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #EC4899; }
+
+@keyframes shimmer {
+    0% { background-position: -1000px 0; }
+    100% { background-position: 1000px 0; }
+}
+.skeleton {
+    background: linear-gradient(90deg, #fce7f3 25%, #f9a8d4 50%, #fce7f3 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}

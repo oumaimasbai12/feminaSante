@@ -3,60 +3,16 @@
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
-Route::get('/', function () {
-    return Inertia::render('Dashboard');
-});
-
-Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
-});
-
-// Menopause Routes
-Route::prefix('menopause')->group(function () {
-    Route::get('/', function () {
-        return Inertia::render('Menopause/Index');
-    });
-});
-
-// Pregnancy Routes
-Route::prefix('pregnancy')->group(function () {
-    Route::get('/', function () {
-        return Inertia::render('Pregnancy/Index');
-    });
-    Route::get('/tools', function () {
-        return Inertia::render('Pregnancy/Tools');
-    });
-    Route::get('/week-by-week', function () {
-        return Inertia::render('Pregnancy/WeekByWeek');
-    });
-});
-
-// Diseases Routes
-Route::prefix('diseases')->group(function () {
-    Route::get('/', function () {
-        return Inertia::render('Diseases/Index');
-    });
-    Route::get('/library', function () {
-        return Inertia::render('Diseases/Library');
-    });
-    Route::get('/symptom-checker', function () {
-        return Inertia::render('Diseases/SymptomChecker');
-    });
-    Route::get('/category/{slug?}', function () {
-        return Inertia::render('Diseases/Category');
-    });
-    Route::get('/{slug}', function ($slug) {
-        return Inertia::render('Diseases/Show', ['diseaseSlug' => $slug]);
-    });
-});
-
-// Cycle Routes
-Route::prefix('cycle')->group(function () {
-    Route::get('/', function () {
-        return Inertia::render('Cycle/Index');
-    });
-    Route::get('/history', function () {
-        return Inertia::render('Cycle/History');
-    });
-});
-
+Route::get("/", fn() => Inertia::render("Welcome"))->name("home");
+Route::get("/login", fn() => Inertia::render("Auth/Login"))->name("login");
+Route::get("/register", fn() => Inertia::render("Auth/Register"))->name("register");
+Route::get("/dashboard", fn() => Inertia::render("Dashboard/Index"))->name("dashboard");
+Route::get("/cycles", fn() => Inertia::render("Cycles/Index"))->name("cycles");
+Route::get("/articles", fn() => Inertia::render("Articles/Index"))->name("articles");
+Route::get("/articles/{id}", fn($id) => Inertia::render("Articles/Show", ["id" => $id]))->name("articles.show");
+Route::get("/chat", fn() => Inertia::render("Chat/Index"))->name("chat");
+Route::get("/gynecologists", fn() => Inertia::render("Gynecologists/Index"))->name("gynecologists");
+Route::get("/pregnancies", fn() => Inertia::render("Pregnancies/Index"))->name("pregnancies");
+Route::get("/quizzes", fn() => Inertia::render("Quizzes/Index"))->name("quizzes");
+Route::get("/appointments", fn() => Inertia::render("Appointments/Index"))->name("appointments");
+Route::get("/profile", fn() => Inertia::render("Profile/Index"))->name("profile");
