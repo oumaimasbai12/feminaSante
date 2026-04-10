@@ -12,7 +12,7 @@ const suggestions = [
 ];
 
 export default function Chat() {
-    const [messages, setMessages] = useState([{ role:'assistant', content: 'Hello! 🌸 I’m your FeminaSanté AI health assistant. I’m here to help you with questions about women’s health, menstrual cycles, pregnancy, and more. What would you like to know today?', time: new Date() }]);
+    const [messages, setMessages] = useState([{ role:'assistant', content: 'Hello! 🌸 I’m your FeminaSante AI health assistant. I’m here to help you with questions about women’s health, menstrual cycles, pregnancy, and more. What would you like to know today?', time: new Date() }]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
     const endRef = useRef(null);
@@ -40,14 +40,14 @@ export default function Chat() {
     const fmt = (d) => d.toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit' });
 
     return (
-        <AppLayout title='Assistant Santé IA'>
+        <AppLayout title='Assistant Sante IA'>
             <div className='flex flex-col h-full' style={{height:'calc(100vh - 130px)'}}>
                 <div className='card flex flex-col h-full overflow-hidden p-0'>
                     {/* Header */}
                     <div className='flex items-center gap-4 p-5 border-b border-violet-50' style={{background:'linear-gradient(135deg,#1e1b4b,#4f46e5)'}}>
                         <div className='w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center'><Bot size={26} className='text-white'/></div>
                         <div>
-                            <div className='font-bold text-white'>FeminaSanté AI</div>
+                            <div className='font-bold text-white'>FeminaSante AI</div>
                             <div className='flex items-center gap-2'><span className='w-2 h-2 rounded-full bg-green-400 animate-pulse'></span><span className='text-pink-200 text-xs'>Online • Women's Health Expert</span></div>
                         </div>
                         <div className='ml-auto'><Sparkles size={22} className='text-white/60'/></div>
@@ -94,7 +94,7 @@ export default function Chat() {
                     {/* Input */}
                     <div className='p-4 border-t border-violet-50 bg-white/80'>
                         <form onSubmit={e=>{e.preventDefault();send();}} className='flex gap-3'>
-                            <input ref={inputRef} value={input} onChange={e=>setInput(e.target.value)} placeholder='Posez-moi vos questions de santé...' className='input-field flex-1 py-3' disabled={loading}/>
+                            <input ref={inputRef} value={input} onChange={e=>setInput(e.target.value)} placeholder='Posez-moi vos questions de sante...' className='input-field flex-1 py-3' disabled={loading}/>
                             <button type='submit' disabled={!input.trim()||loading} className='w-12 h-12 rounded-xl flex items-center justify-center text-white transition-all disabled:opacity-50' style={{background:'linear-gradient(135deg,#7C3AED,#D97706)'}}><Send size={18}/></button>
                         </form>
                     </div>

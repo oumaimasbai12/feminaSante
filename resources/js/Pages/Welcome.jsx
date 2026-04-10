@@ -5,14 +5,14 @@ import { Heart, Activity, Brain, Stethoscope, Baby, BookOpen, ArrowRight, CheckC
 
 const features = [
     { icon: Heart, title: 'Suivi du cycle', desc: 'Suivez votre cycle menstruel, vos symptômes et votre humeur avec des prédictions intelligentes.', color: 'from-violet-500 to-purple-600' },
-    { icon: Activity, title: 'Analyse de santé', desc: 'Analyse de vos habitudes de santé par IA avec des recommandations personnalisées.', color: 'from-purple-500 to-indigo-600' },
-    { icon: Brain, title: 'Quiz de santé', desc: 'Des quiz interactifs pour mieux comprendre votre corps et votre santé.', color: 'from-indigo-500 to-blue-600' },
+    { icon: Activity, title: 'Analyse de sante', desc: 'Analyse de vos habitudes de sante par IA avec des recommandations personnalisées.', color: 'from-purple-500 to-indigo-600' },
+    { icon: Brain, title: 'Quiz de sante', desc: 'Des quiz interactifs pour mieux comprendre votre corps et votre sante.', color: 'from-indigo-500 to-blue-600' },
     { icon: Stethoscope, title: 'Réseau d’experts', desc: 'Consultez des gynécologues certifiés et prenez rendez-vous facilement.', color: 'from-amber-500 to-orange-500' },
     { icon: Baby, title: 'Suivi de grossesse', desc: 'Suivi complet de la grossesse du premier trimestre jusqu’à l’accouchement.', color: 'from-teal-500 to-cyan-600' },
-    { icon: BookOpen, title: 'Bibliothèque santé', desc: 'Articles et ressources rédigés par des experts médicaux spécialisés.', color: 'from-rose-500 to-pink-600' },
+    { icon: BookOpen, title: 'Bibliothèque sante', desc: 'Articles et ressources rédigés par des experts médicaux spécialisés.', color: 'from-rose-500 to-pink-600' },
 ];
 
-const stats = [{ v: '50K+', l: 'Femmes accompagnées' }, { v: '200+', l: 'Articles de santé' }, { v: '98%', l: 'Taux de satisfaction' }, { v: '24/7', l: 'Support IA' }];
+const stats = [{ v: '50K+', l: 'Femmes accompagnées' }, { v: '200+', l: 'Articles de sante' }, { v: '98%', l: 'Taux de satisfaction' }, { v: '24/7', l: 'Support IA' }];
 
 export default function Welcome() {
     return (
@@ -38,14 +38,14 @@ export default function Welcome() {
                     <div>
                         <div className='inline-flex items-center gap-2 bg-violet-100 text-violet-700 text-sm font-semibold px-4 py-2 rounded-full mb-6'>
                             <span className='w-2 h-2 rounded-full bg-violet-500 animate-pulse'></span>
-                            Plateforme de Santé Féminine
+                            Plateforme de Sante Féminine
                         </div>
                         <h1 className='text-5xl lg:text-6xl font-extrabold text-gray-900 leading-tight mb-6'>
                             Prenez soin de<br/>
-                            <span className='text-gradient'>votre santé</span><br/>
+                            <span className='text-gradient'>votre sante</span><br/>
                             en toute confiance
                         </h1>
-                        <p className='text-xl text-gray-500 leading-relaxed mb-10'>FeminaSanté est votre compagnon de santé intelligent — suivez votre cycle, surveillez votre grossesse, consultez des experts et comprenez votre corps comme jamais.</p>
+                        <p className='text-xl text-gray-500 leading-relaxed mb-10'>FeminaSante est votre compagnon de sante intelligent — suivez votre cycle, surveillez votre grossesse, consultez des experts et comprenez votre corps comme jamais.</p>
                         <div className='flex flex-wrap gap-4 mb-10'>
                             <Link href='/register' className='btn-primary flex items-center gap-2 text-base'>Commencer maintenant <ArrowRight size={18}/></Link>
                             <Link href='/login' className='flex items-center gap-2 px-6 py-3 rounded-xl border-2 border-violet-200 text-violet-700 font-semibold hover:bg-violet-50 transition-all text-base'>Se connecter</Link>
@@ -99,8 +99,8 @@ export default function Welcome() {
                 <div className='max-w-6xl mx-auto'>
                     <div className='text-center mb-16'>
                         <span className='text-violet-700 font-semibold text-sm uppercase tracking-wider'>Tout ce dont vous avez besoin</span>
-                        <h2 className='text-4xl font-extrabold text-gray-900 mt-3 mb-4'>Votre compagnon de santé complet</h2>
-                        <p className='text-gray-500 max-w-2xl mx-auto text-lg'>Du suivi du cycle au suivi de grossesse — chaque aspect de votre santé féminine est couvert.</p>
+                        <h2 className='text-4xl font-extrabold text-gray-900 mt-3 mb-4'>Votre compagnon de sante complet</h2>
+                        <p className='text-gray-500 max-w-2xl mx-auto text-lg'>Du suivi du cycle au suivi de grossesse — chaque aspect de votre sante féminine est couvert.</p>
                     </div>
                     <div className='grid md:grid-cols-2 lg:grid-cols-3 gap-6'>
                         {features.map(f => { const I = f.icon; return (
@@ -117,10 +117,10 @@ export default function Welcome() {
             <section id='about' className='py-24 px-6 text-center' style={{background:'linear-gradient(135deg,#f5f3ff,#fff8ed)'}}>
                 <div className='max-w-3xl mx-auto'>
                     <div className='flex justify-center gap-1 mb-6'>{[...Array(5)].map((_,i)=><Star key={i} size={24} className='text-amber-400 fill-amber-400'/>)}</div>
-                    <blockquote className='text-2xl lg:text-3xl font-medium text-gray-800 leading-relaxed mb-8'>“FeminaSanté m’a aidée à comprendre mon corps d’une façon que je n’aurais jamais cru possible. Les prédictions de cycle sont incroyablement précises !”</blockquote>
+                    <blockquote className='text-2xl lg:text-3xl font-medium text-gray-800 leading-relaxed mb-8'>“FeminaSante m’a aidée à comprendre mon corps d’une façon que je n’aurais jamais cru possible. Les prédictions de cycle sont incroyablement précises !”</blockquote>
                     <p className='text-gray-500 mb-12'>— Sarah M., utilisatrice depuis 2024</p>
                     <h2 className='text-4xl font-extrabold text-gray-900 mb-4'>Prête à commencer votre parcours ?</h2>
-                    <p className='text-gray-500 text-lg mb-8'>Rejoignez des milliers de femmes qui font confiance à FeminaSanté.</p>
+                    <p className='text-gray-500 text-lg mb-8'>Rejoignez des milliers de femmes qui font confiance à FeminaSante.</p>
                     <Link href='/register' className='btn-primary inline-flex items-center gap-2 text-lg px-8 py-4'>Créer un compte gratuit <ArrowRight size={20}/></Link>
                 </div>
             </section>
@@ -128,7 +128,7 @@ export default function Welcome() {
             <footer className='py-8 px-6 border-t border-violet-100'>
                 <div className='max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4'>
                     <Logo size='sm'/>
-                    <p className='text-gray-400 text-sm'>© 2024 FeminaSanté. Tous droits réservés.</p>
+                    <p className='text-gray-400 text-sm'>© 2024 FeminaSante. Tous droits réservés.</p>
                     <div className='flex gap-6 text-sm text-gray-500'>
                         <a href='#' className='hover:text-violet-700 transition-colors'>Confidentialité</a>
                         <a href='#' className='hover:text-violet-700 transition-colors'>Conditions</a>

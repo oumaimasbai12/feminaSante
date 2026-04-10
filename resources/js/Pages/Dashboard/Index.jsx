@@ -112,7 +112,7 @@ export default function Dashboard() {
                         {articles.slice(0,3).map(a => (
                             <Link key={a.id} href={'/articles/'+a.id} className='card card-hover group'>
                                 <div className='w-full h-2 rounded-full bg-gradient-to-r from-violet-500 to-amber-500 mb-4'></div>
-                                <span className='text-xs font-semibold text-violet-700 uppercase tracking-wider'>{a.category||'Santé'}</span>
+                                <span className='text-xs font-semibold text-violet-700 uppercase tracking-wider'>{a.category||'Sante'}</span>
                                 <h4 className='font-bold text-gray-900 mt-1 mb-2 group-hover:text-violet-700 transition-colors line-clamp-2'>{a.title}</h4>
                                 <p className='text-sm text-gray-500 line-clamp-2'>{a.excerpt}</p>
                             </Link>
@@ -124,8 +124,8 @@ export default function Dashboard() {
             {articles.length===0 && !loading && (
                 <div className='card text-center py-10'>
                     <div className='text-5xl mb-4'>🌸</div>
-                    <h3 className='text-lg font-bold text-gray-800 mb-2'>Bienvenue sur FeminaSanté !</h3>
-                    <p className='text-gray-500 mb-6'>Commencez par enregistrer votre cycle ou explorer les articles de santé.</p>
+                    <h3 className='text-lg font-bold text-gray-800 mb-2'>Bienvenue sur FeminaSante !</h3>
+                    <p className='text-gray-500 mb-6'>Commencez par enregistrer votre cycle ou explorer les articles de sante.</p>
                     <div className='flex justify-center gap-3'>
                         <Link href='/cycles' className='btn-primary text-sm'>Mon cycle</Link>
                         <Link href='/articles' className='border border-violet-200 text-violet-700 font-semibold rounded-xl px-5 py-2.5 text-sm hover:bg-violet-50 transition-all'>Lire les articles</Link>

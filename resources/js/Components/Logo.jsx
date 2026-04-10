@@ -26,7 +26,7 @@ export default function Logo({ size = 'md', showText = true, className = '', lig
             {showText && (
                 <span className={'font-extrabold tracking-tight ' + s.text}>
                     <span className={light ? 'text-violet-200' : 'text-gradient'}>Femina</span>
-                    <span className={light ? 'text-amber-300' : 'text-amber-700'}>Santé</span>
+                    <span className={light ? 'text-amber-300' : 'text-amber-700'}>Sante</span>
                 </span>
             )}
         </div>
