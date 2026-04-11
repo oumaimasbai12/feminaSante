@@ -27,6 +27,12 @@ class User extends Authenticatable
         'langage',
     ];
 
+    /**
+     * Explicitly guard virtual attributes so they are never
+     * written to the database by Sanctum / Notifiable internals.
+     */
+    protected $guarded = ['name', 'password'];
+
     protected $hidden = [
         'motDePasse',
         'remember_token',
@@ -44,6 +50,10 @@ class User extends Authenticatable
         ];
     }
 
+    /**
+     * Laravel / Sanctum traits call $user->name internally.
+     * Map it to the real 'nom' column without persisting 'name'.
+     */
     public function getNameAttribute(): ?string
     {
         return $this->attributes['nom'] ?? null;
@@ -52,6 +62,16 @@ class User extends Authenticatable
     public function setNameAttribute(?string $value): void
     {
         $this->attributes['nom'] = $value;
+        unset($this->attributes['name']);
+    }
+
+    /**
+     * Laravel auth calls getAuthPassword() to verify credentials.
+     * Map it to our 'motDePasse' column.
+     */
+    public function getAuthPassword(): string
+    {
+        return $this->attributes['motDePasse'] ?? '';
     }
 
     public function getPasswordAttribute(): ?string
@@ -62,6 +82,7 @@ class User extends Authenticatable
     public function setPasswordAttribute(?string $value): void
     {
         $this->attributes['motDePasse'] = $value;
+        unset($this->attributes['password']);
     }
 
     public function pregnancies(): HasMany

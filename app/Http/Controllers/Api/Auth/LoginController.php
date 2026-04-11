@@ -22,7 +22,9 @@ class LoginController extends Controller
 
         $password = $data['motDePasse'] ?? $data['password'];
 
-        if (! $user || ! Hash::check($password, $user->motDePasse)) {
+        $storedPassword = $user?->motDePasse ?? $user?->password;
+
+        if (! $user || ! $storedPassword || ! Hash::check($password, $storedPassword)) {
             return response()->json([
                 'message' => 'Invalid credentials.',
             ], 401);
