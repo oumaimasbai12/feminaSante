@@ -63,4 +63,31 @@ class GynecologistController extends Controller
             $gynecologist->load('availabilities')
         );
     }
+
+    public function update(Request $request, Gynecologist $gynecologist): JsonResponse
+    {
+        $data = $request->validate([
+            'first_name' => ['sometimes', 'string', 'max:100'],
+            'last_name' => ['sometimes', 'string', 'max:100'],
+            'speciality' => ['nullable', 'string'],
+            'phone' => ['nullable', 'string', 'max:20'],
+            'email' => ['nullable', 'email'],
+            'adress' => ['nullable', 'string'],
+            'city' => ['nullable', 'string', 'max:100'],
+            'consultation_type' => ['nullable', 'array'],
+            'consultation_duration' => ['nullable', 'integer'],
+            'consultation_fee' => ['nullable', 'numeric'],
+            'bio' => ['nullable', 'string'],
+            'languages_spoken' => ['nullable', 'array'],
+            'is_active' => ['nullable', 'boolean'],
+        ]);
+        $gynecologist->update($data);
+        return response()->json(['message' => 'Mis à jour.', 'gynecologist' => $gynecologist]);
+    }
+
+    public function destroy(Gynecologist $gynecologist): JsonResponse
+    {
+        $gynecologist->update(['is_active' => false]);
+        return response()->json(['message' => 'Gynécologue désactivée.']);
+    }
 }

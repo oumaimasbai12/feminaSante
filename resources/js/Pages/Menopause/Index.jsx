@@ -1,42 +1,31 @@
 import React from 'react';
-import AuthenticatedLayout from '@/Components/Layouts/AuthenticatedLayout';
-import { Head, Link } from '@inertiajs/react';
-import MenopauseDashboard from '@/Components/Menopause/MenopauseDashboard';
-import SymptomLogger from '@/Components/Menopause/SymptomLogger';
-import TreatmentManager from '@/Components/Menopause/TreatmentManager';
-import MedicalDisclaimer from '@/Components/Diseases/MedicalDisclaimer';
+import AppLayout from '../../Layouts/AppLayout';
+import MenopauseDashboard from '../../Components/Menopause/MenopauseDashboard';
+import SymptomLogger from '../../Components/Menopause/SymptomLogger';
+import TreatmentManager from '../../Components/Menopause/TreatmentManager';
 
-export default function Index({ auth }) {
+export default function MenopauseIndex() {
     return (
-        <AuthenticatedLayout
-            user={auth?.user}
-            header={<h2 className="font-bold text-2xl text-gray-800 leading-tight">Ménopause</h2>}
-        >
-            <Head title="Suivi Ménopause - Femina Santé" />
+        <AppLayout title='Ménopause'>
+            <div className='space-y-6'>
+                <div>
+                    <h1 className='text-2xl font-extrabold text-gray-900'>Accompagnement Ménopause</h1>
+                    <p className='text-gray-500 mt-1'>Tous les outils pour un suivi personnalisé et serein.</p>
+                </div>
 
-            <div className="py-8">
-                <div className="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-8">
-                    
-                    <div className="mb-8">
-                        <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Accompagnement Ménopause</h1>
-                        <p className="text-gray-600 mt-2 text-lg">Retrouvez ici tous les outils pour un suivi personnalisé et serein de cette nouvelle étape.</p>
-                    </div>
+                <div className='card bg-amber-50 border border-amber-200'>
+                    <p className='text-sm text-amber-800'>
+                        ⚠️ <strong>Information médicale :</strong> Ces outils sont fournis à titre éducatif uniquement et ne remplacent pas l'avis d'un professionnel de santé.
+                    </p>
+                </div>
 
-                    <MedicalDisclaimer />
+                <MenopauseDashboard />
 
-                    <MenopauseDashboard />
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div className="h-full">
-                            <SymptomLogger />
-                        </div>
-                        
-                        <div className="h-full">
-                            <TreatmentManager />
-                        </div>
-                    </div>
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                    <SymptomLogger />
+                    <TreatmentManager />
                 </div>
             </div>
-        </AuthenticatedLayout>
+        </AppLayout>
     );
 }

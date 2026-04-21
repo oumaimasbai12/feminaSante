@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Auth;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 
 class ProfileController extends Controller
@@ -37,10 +38,18 @@ class ProfileController extends Controller
             'langage' => ['nullable', 'string', 'max:10'],
         ]);
 
-        $user->update([
+        $name = $data['nom'] ?? $data['name'];
+
+        $payload = [
             ...$data,
-            'nom' => $data['nom'] ?? $data['name'],
-        ]);
+            'nom' => $name,
+        ];
+
+        if (Schema::hasColumn('users', 'name')) {
+            $payload['name'] = $name;
+        }
+
+        $user->update($payload);
 
         return response()->json([
             'message' => 'Profile updated successfully.',

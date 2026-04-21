@@ -62,4 +62,29 @@ class ArticleController extends Controller
             $article->load(['category', 'author', 'comments.user'])
         );
     }
+    public function update(Request $request, Article $article): JsonResponse
+    {
+        $data = $request->validate([
+            'title' => ['sometimes', 'string', 'max:255'],
+            'excerpt' => ['nullable', 'string'],
+            'content' => ['nullable', 'string'],
+            'category_id' => ['nullable', 'exists:article_categories,id'],
+            'tags' => ['nullable', 'array'],
+            'status' => ['nullable', 'in:draft,published,archived'],
+            'is_featured' => ['nullable', 'boolean'],
+            'is_premium' => ['nullable', 'boolean'],
+            'read_time' => ['nullable', 'integer'],
+        ]);
+        $article->update($data);
+        return response()->json([
+            'message' => 'Article updated.',
+            'article' => $article->load(['category', 'author']),
+        ]);
+    }
+
+    public function destroy(Article $article): JsonResponse
+    {
+        $article->delete();
+        return response()->json(['message' => 'Article deleted.']);
+    }
 }

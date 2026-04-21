@@ -3,48 +3,50 @@
 @tailwind utilities;
 
 @layer base {
-    body { font-family: 'Inter', sans-serif; }
-    h1, h2, h3 { font-family: 'Inter', sans-serif; }
+    body { 
+        font-family: 'Inter', sans-serif; 
+        background-color: #fdf2f8; /* pink-50 */
+        background-image: radial-gradient(#fbcfe8 1px, transparent 1px); /* subtle dot pattern */
+        background-size: 24px 24px;
+        color: #57534e; /* Warm stone-600 */
+    }
 }
 
-@layer utilities {
-    .text-gradient {
-        background: linear-gradient(135deg, #F43F5E, #EC4899, #A855F7);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-    }
-    .bg-gradient-femina { background: linear-gradient(135deg, #F43F5E 0%, #EC4899 50%, #A855F7 100%); }
-    .glass {
-        background: rgba(255, 255, 255, 0.85);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-    }
+@layer components {
     .card-hover { transition: all 0.3s ease; }
-    .card-hover:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(236, 72, 153, 0.12); }
+    .card-hover:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(244,114,182,0.15); }
     .btn-primary {
-        background: linear-gradient(135deg, #EC4899, #A855F7);
+        background: linear-gradient(135deg, #f472b6, #fb7185);
         color: white;
         font-weight: 600;
         border-radius: 12px;
         padding: 12px 24px;
         transition: all 0.3s ease;
-        box-shadow: 0 4px 15px rgba(236, 72, 153, 0.3);
+        box-shadow: 0 4px 15px rgba(244,114,182,0.3);
     }
-    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 25px rgba(236, 72, 153, 0.4); }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 25px rgba(244,114,182,0.45); }
     .input-field {
-        width: 100%;
-        padding: 12px 16px;
-        border-radius: 12px;
-        border: 1.5px solid #FCE7F3;
-        background: white;
-        outline: none;
-        transition: all 0.2s;
-        color: #1f2937;
+        @apply w-full rounded-xl bg-white outline-none transition-all text-gray-800 py-3 px-4;
+        border: 1.5px solid #EDE9FE;
         font-size: 0.95rem;
     }
-    .input-field:focus { border-color: #EC4899; box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.1); }
-    .card { background: white; border-radius: 20px; box-shadow: 0 2px 20px rgba(0,0,0,0.06); border: 1px solid rgba(252, 231, 243, 0.5); padding: 24px; }
+    .input-field:focus { border-color: #f472b6; box-shadow: 0 0 0 3px rgba(244,114,182,0.15); }
+    .card { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(8px); border-radius: 20px; box-shadow: 0 4px 20px rgba(244,114,182,0.08); border: 1px solid rgba(252,231,243,0.8); padding: 24px; }
+}
+
+@layer utilities {
+    .text-gradient {
+        background: linear-gradient(135deg, #f472b6, #ffb6c1, #fb7185);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    .bg-gradient-femina { background: linear-gradient(135deg, #f472b6 0%, #ffb6c1 50%, #fb7185 100%); }
+    .glass {
+        background: rgba(255, 255, 255, 0.88);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+    }
     .sidebar-nav::-webkit-scrollbar { width: 4px; }
     .sidebar-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
     .animation-delay-2000 { animation-delay: 2s; }
@@ -52,16 +54,16 @@
 }
 
 ::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: #FFF0F5; }
-::-webkit-scrollbar-thumb { background: linear-gradient(#EC4899, #A855F7); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #EC4899; }
+::-webkit-scrollbar-track { background: #fdf2f8; }
+::-webkit-scrollbar-thumb { background: linear-gradient(#f472b6, #fb7185); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #f472b6; }
 
 @keyframes shimmer {
     0% { background-position: -1000px 0; }
     100% { background-position: 1000px 0; }
 }
 .skeleton {
-    background: linear-gradient(90deg, #fce7f3 25%, #f9a8d4 50%, #fce7f3 75%);
+    background: linear-gradient(90deg, #fce7f3 25%, #fbcfe8 50%, #fce7f3 75%);
     background-size: 200% 100%;
     animation: shimmer 1.5s infinite;
 }

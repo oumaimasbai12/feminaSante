@@ -33,21 +33,24 @@ use App\Http\Controllers\Api\Pregnancy\WeightGainController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
+
+    // ── AUTH (public) ────────────────────────────────────
     Route::post('/register', RegisterController::class);
     Route::post('/login', LoginController::class);
+    Route::post('/forgot-password', [\App\Http\Controllers\Api\Auth\PasswordResetController::class, 'request']);
+    Route::post('/reset-password', [\App\Http\Controllers\Api\Auth\PasswordResetController::class, 'reset']);
 
-    // Educational disease catalog: readable without auth so the Inertia SPA can load data for guests.
-    Route::prefix('diseases')->group(function () {
-        Route::get('/catalog', [DiseaseCatalogController::class, 'index']);
-        Route::get('/catalog/{slug}', [DiseaseCatalogController::class, 'show']);
+    // ── PUBLIC (no auth needed) ──────────────────────────
+    Route::get('/articles', [ArticleController::class, 'index']);
+    Route::get('/articles/{article}', [ArticleController::class, 'show']);
+    Route::get('/article-categories', [ArticleCategoryController::class, 'index']);
+    Route::get('/gynecologists', [GynecologistController::class, 'index']);
+    Route::get('/gynecologists/{gynecologist}', [GynecologistController::class, 'show']);
+    Route::get('/quizzes', [QuizController::class, 'index']);
+    Route::get('/quizzes/{quiz}', [QuizController::class, 'show']);
+    Route::get('/availabilities', [AvailabilityController::class, 'index']);
 
-        Route::get('/categories', [DiseaseCategoryController::class, 'index']);
-        Route::get('/categories/{slug}', [DiseaseCategoryController::class, 'show']);
-
-        Route::post('/symptom-checker', SymptomCheckerController::class);
-        Route::get('/prevention-tips', PreventionTipsController::class);
-    });
-
+    // ── PROTECTED ────────────────────────────────────────
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/dashboard', DashboardController::class);
         Route::get('/profile', [ProfileController::class, 'show']);
@@ -58,20 +61,25 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('/symptoms', SymptomController::class)->only(['index', 'store']);
         Route::apiResource('/predictions', PredictionController::class)->only(['index']);
 
-        Route::apiResource('/article-categories', ArticleCategoryController::class)->only(['index', 'store']);
-        Route::apiResource('/articles', ArticleController::class)->only(['index', 'store', 'show']);
+        // Articles — write only (reads are public above)
+        Route::post('/articles', [ArticleController::class, 'store']);
+        Route::post('/article-categories', [ArticleCategoryController::class, 'store']);
         Route::post('/articles/{article}/comments', [ArticleCommentController::class, 'store']);
 
-        Route::apiResource('/quizzes', QuizController::class)->only(['index', 'store', 'show']);
+        // Quizzes — write only (reads are public above)
+        Route::post('/quizzes', [QuizController::class, 'store']);
         Route::post('/quizzes/{quiz}/questions', [QuestionController::class, 'store']);
         Route::post('/quizzes/{quiz}/submit', [QuizResultController::class, 'store']);
 
         Route::get('/chats', [ChatController::class, 'index']);
         Route::post('/chats', [ChatController::class, 'store']);
+
         Route::apiResource('/notifications', NotificationController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
 
-        Route::apiResource('/gynecologists', GynecologistController::class)->only(['index', 'store', 'show']);
-        Route::apiResource('/availabilities', AvailabilityController::class)->only(['index', 'store']);
+        // Gynecologists — write only (reads are public above)
+        Route::post('/gynecologists', [GynecologistController::class, 'store']);
+        Route::post('/availabilities', [AvailabilityController::class, 'store']);
+
         Route::apiResource('/appointments', AppointmentController::class)->only(['index', 'store', 'show', 'update']);
 
         Route::apiResource('/pregnancies', PregnancyController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
@@ -88,6 +96,7 @@ Route::prefix('v1')->group(function () {
         Route::put('/menopause-treatments/{menopauseTreatment}', [MenopauseTreatmentController::class, 'update']);
         Route::patch('/menopause-treatments/{menopauseTreatment}', [MenopauseTreatmentController::class, 'update']);
         Route::delete('/menopause-treatments/{menopauseTreatment}', [MenopauseTreatmentController::class, 'destroy']);
+
         Route::get('/pregnancies/{pregnancy}/checkups', [PregnancyCheckupController::class, 'index']);
         Route::post('/pregnancies/{pregnancy}/checkups', [PregnancyCheckupController::class, 'store']);
         Route::get('/pregnancy-checkups/{pregnancyCheckup}', [PregnancyCheckupController::class, 'show']);
@@ -116,11 +125,23 @@ Route::prefix('v1')->group(function () {
         Route::patch('/weight-gains/{weightGain}', [WeightGainController::class, 'update']);
         Route::delete('/weight-gains/{weightGain}', [WeightGainController::class, 'destroy']);
 
+        Route::prefix('diseases')->group(function () {
+            Route::get('/catalog', [DiseaseCatalogController::class, 'index']);
+            Route::get('/catalog/{slug}', [DiseaseCatalogController::class, 'show']);
+            Route::get('/categories', [DiseaseCategoryController::class, 'index']);
+            Route::get('/categories/{slug}', [DiseaseCategoryController::class, 'show']);
+            Route::post('/symptom-checker', SymptomCheckerController::class);
+            Route::get('/prevention-tips', PreventionTipsController::class);
+        });
+
+        // ── ADMIN ────────────────────────────────────────
         Route::prefix('admin')->middleware('admin')->group(function () {
             Route::get('/dashboard', \App\Http\Controllers\Api\Admin\AdminDashboardController::class);
             Route::apiResource('/users', \App\Http\Controllers\Api\Admin\UserController::class)->only(['index', 'show', 'destroy']);
+            Route::put('/gynecologists/{gynecologist}', [GynecologistController::class, 'update']);
+            Route::delete('/gynecologists/{gynecologist}', [GynecologistController::class, 'destroy']);
+            Route::put('/articles/{article}', [ArticleController::class, 'update']);
+            Route::delete('/articles/{article}', [ArticleController::class, 'destroy']);
         });
-
-
     });
 });

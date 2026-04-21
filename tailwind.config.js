@@ -1,4 +1,5 @@
 import defaultTheme from 'tailwindcss/defaultTheme';
+import colors from 'tailwindcss/colors';
 
 export default {
     content: [
@@ -9,6 +10,12 @@ export default {
     ],
     theme: {
         extend: {
+            colors: {
+                violet: colors.pink,
+                indigo: colors.rose,
+                amber: colors.rose,
+                blue: colors.teal,
+            },
             fontFamily: {
                 sans: ['Inter', ...defaultTheme.fontFamily.sans],
                 serif: ['Playfair Display', ...defaultTheme.fontFamily.serif],

@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 
 class RegisterController extends Controller
 {
@@ -27,10 +28,13 @@ class RegisterController extends Controller
             'langage' => ['nullable', 'string', 'max:10'],
         ]);
 
-        $user = User::create([
-            'nom' => $data['nom'] ?? $data['name'],
+        $name = $data['nom'] ?? $data['name'];
+        $hashedPassword = Hash::make($data['motDePasse'] ?? $data['password']);
+
+        $payload = [
+            'nom' => $name,
             'email' => $data['email'],
-            'motDePasse' => Hash::make($data['motDePasse'] ?? $data['password']),
+            'motDePasse' => $hashedPassword,
             'birth_date' => $data['birth_date'] ?? null,
             'gender' => $data['gender'] ?? 'female',
             'blood_type' => $data['blood_type'] ?? null,
@@ -38,7 +42,17 @@ class RegisterController extends Controller
             'medical_history' => $data['medical_history'] ?? null,
             'notification_settings' => $data['notification_settings'] ?? null,
             'langage' => $data['langage'] ?? 'fr',
-        ]);
+        ];
+
+        if (Schema::hasColumn('users', 'name')) {
+            $payload['name'] = $name;
+        }
+
+        if (Schema::hasColumn('users', 'password')) {
+            $payload['password'] = $hashedPassword;
+        }
+
+        $user = User::create($payload);
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
