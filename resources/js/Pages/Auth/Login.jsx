@@ -19,6 +19,8 @@ export default function Login() {
             localStorage.setItem('user', JSON.stringify(user));
             if (user.is_admin) {
                 router.visit('/admin/dashboard');
+            } else if (user.is_gynecologist) {
+                router.visit('/gynecologist/dashboard');
             } else {
                 router.visit('/dashboard');
             }

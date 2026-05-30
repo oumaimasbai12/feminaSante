@@ -30,10 +30,10 @@ export default function Welcome() {
                 </div>
             </nav>
 
-            <section className='relative min-h-screen flex items-center pt-20 overflow-hidden' style={{background:'linear-gradient(135deg,#fdf2f8 0%,#fff5f5 50%,#fff8ed 100%)'}}>
-                <div className='absolute top-20 -left-20 w-96 h-96 rounded-full opacity-25 animate-blob' style={{background:'radial-gradient(circle,#a78bfa,transparent)'}}></div>
-                <div className='absolute top-40 right-10 w-80 h-80 rounded-full opacity-20 animate-blob animation-delay-2000' style={{background:'radial-gradient(circle,#fcd34d,transparent)'}}></div>
-                <div className='absolute bottom-20 left-1/3 w-64 h-64 rounded-full opacity-15 animate-blob animation-delay-4000' style={{background:'radial-gradient(circle,#c4b5fd,transparent)'}}></div>
+            <section className='relative min-h-screen flex items-center pt-20 overflow-hidden' style={{background:'linear-gradient(135deg,#FDF7F8 0%,#F1E6F0 50%,#EEECE0 100%)'}}>
+                <div className='absolute top-20 -left-20 w-96 h-96 rounded-full opacity-25 animate-blob' style={{background:'radial-gradient(circle,#DB779B,transparent)'}}></div>
+                <div className='absolute top-40 right-10 w-80 h-80 rounded-full opacity-20 animate-blob animation-delay-2000' style={{background:'radial-gradient(circle,#A5A05A,transparent)'}}></div>
+                <div className='absolute bottom-20 left-1/3 w-64 h-64 rounded-full opacity-15 animate-blob animation-delay-4000' style={{background:'radial-gradient(circle,#D9A1D4,transparent)'}}></div>
                 <div className='relative z-10 max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-12 items-center py-20'>
                     <div>
                         <div className='inline-flex items-center gap-2 bg-pink-100 text-pink-700 text-sm font-semibold px-4 py-2 rounded-full mb-6'>
@@ -58,7 +58,7 @@ export default function Welcome() {
                     </div>
                     <div className='relative flex justify-center'>
                         <div className='relative animate-float'>
-                            <div className='w-80 h-80 lg:w-96 lg:h-96 rounded-3xl shadow-2xl overflow-hidden' style={{background:'linear-gradient(135deg,#f472b6,#fb7185,#7c3aed)'}}>
+                            <div className='w-80 h-80 lg:w-96 lg:h-96 rounded-3xl shadow-2xl overflow-hidden' style={{background:'linear-gradient(135deg,#DB779B,#D9A1D4,#86437E)'}}>
                                 <div className='absolute inset-0 flex flex-col items-center justify-center text-white p-8'>
                                     <Logo size='xl' light className='justify-center mb-6'/>
                                     <div className='grid grid-cols-2 gap-3 w-full'>
@@ -72,7 +72,7 @@ export default function Welcome() {
                                 </div>
                             </div>
                             <div className='absolute -top-4 -right-4 bg-white rounded-2xl shadow-xl p-4 flex items-center gap-3'>
-                                <div className='w-10 h-10 rounded-xl flex items-center justify-center' style={{background:'linear-gradient(135deg,#f472b6,#ffb6c1)'}}><Heart size={20} className='text-white'/></div>
+                                <div className='w-10 h-10 rounded-xl flex items-center justify-center' style={{background:'linear-gradient(135deg,#DB779B,#E1C9CD)'}}><Heart size={20} className='text-white'/></div>
                                 <div><div className='text-xs text-gray-500'>Durée du cycle</div><div className='font-bold text-gray-900'>28 jours moy.</div></div>
                             </div>
                             <div className='absolute -bottom-4 -left-4 bg-white rounded-2xl shadow-xl p-4 flex items-center gap-3'>
@@ -84,7 +84,7 @@ export default function Welcome() {
                 </div>
             </section>
 
-            <section id='stats' className='py-16' style={{background:'linear-gradient(135deg,#f472b6,#ffb6c1,#fb7185)'}}>
+            <section id='stats' className='py-16' style={{background:'linear-gradient(135deg,#DB779B,#D9A1D4,#86437E)'}}>
                 <div className='max-w-5xl mx-auto px-6 grid grid-cols-2 lg:grid-cols-4 gap-8'>
                     {stats.map(s => (
                         <div key={s.v} className='text-center'>
@@ -95,7 +95,7 @@ export default function Welcome() {
                 </div>
             </section>
 
-            <section id='features' className='py-24 px-6' style={{background:'linear-gradient(180deg,#fdf2f8 0%,white 100%)'}}>
+            <section id='features' className='py-24 px-6' style={{background:'linear-gradient(180deg,#FDF7F8 0%,white 100%)'}}>
                 <div className='max-w-6xl mx-auto'>
                     <div className='text-center mb-16'>
                         <span className='text-pink-700 font-semibold text-sm uppercase tracking-wider'>Tout ce dont vous avez besoin</span>
@@ -114,7 +114,7 @@ export default function Welcome() {
                 </div>
             </section>
 
-            <section id='about' className='py-24 px-6 text-center' style={{background:'linear-gradient(135deg,#fdf2f8,#fff8ed)'}}>
+            <section id='about' className='py-24 px-6 text-center' style={{background:'linear-gradient(135deg,#FDF7F8,#EEECE0)'}}>
                 <div className='max-w-3xl mx-auto'>
                     <div className='flex justify-center gap-1 mb-6'>{[...Array(5)].map((_,i)=><Star key={i} size={24} className='text-amber-400 fill-amber-400'/>)}</div>
                     <blockquote className='text-2xl lg:text-3xl font-medium text-gray-800 leading-relaxed mb-8'>'FeminaSante m\'a aidée à comprendre mon corps d\'une façon que je n\'aurais jamais cru possible. Les prédictions de cycle sont incroyablement précises !'</blockquote>

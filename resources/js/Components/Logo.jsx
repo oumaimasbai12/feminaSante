@@ -9,9 +9,9 @@ export default function Logo({ size = 'md', showText = true, className = '', lig
             <svg width={s.w} height={s.w} viewBox='0 0 48 48' fill='none' xmlns='http://www.w3.org/2000/svg'>
                 <defs>
                     <linearGradient id={id} x1='0%' y1='0%' x2='100%' y2='100%'>
-                        <stop offset='0%' stopColor={light ? '#fbcfe8' : '#f472b6'}/>
-                        <stop offset='55%' stopColor={light ? '#ffc0cb' : '#ffb6c1'}/>
-                        <stop offset='100%' stopColor='#fb7185'/>
+                        <stop offset='0%' stopColor={light ? '#E1C9CD' : '#DB779B'}/>
+                        <stop offset='55%' stopColor={light ? '#F0CCD8' : '#D9A1D4'}/>
+                        <stop offset='100%' stopColor='#86437E'/>
                     </linearGradient>
                 </defs>
                 <ellipse cx='24' cy='12' rx='4.5' ry='11' fill={'url(#' + id + ')'} opacity='0.92' transform='rotate(0,24,24)'/>

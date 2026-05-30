@@ -12,11 +12,11 @@ const phases = {
 
 const quickActions = [
     { label: 'Mes règles', href: '/cycles', icon: Droplets, color: 'from-pink-500 to-purple-600' },
-    { label: 'Assistant IA', href: '/chat', icon: MessageCircle, color: 'from-indigo-500 to-pink-600' },
-    { label: 'Trouver un médecin', href: '/gynecologists', icon: Stethoscope, color: 'from-amber-500 to-orange-500' },
-    { label: 'Articles', href: '/articles', icon: BookOpen, color: 'from-teal-500 to-cyan-600' },
-    { label: 'Grossesse', href: '/pregnancies', icon: Baby, color: 'from-pink-500 to-rose-500' },
-    { label: 'Rendez-vous', href: '/appointments', icon: Calendar, color: 'from-emerald-500 to-green-600' },
+    { label: 'Assistant IA', href: '/chat', icon: MessageCircle, color: 'from-purple-500 to-pink-600' },
+    { label: 'Trouver un médecin', href: '/gynecologists', icon: Stethoscope, color: 'from-olive-500 to-olive-600' },
+    { label: 'Articles', href: '/articles', icon: BookOpen, color: 'from-pink-400 to-pink-500' },
+    { label: 'Grossesse', href: '/pregnancies', icon: Baby, color: 'from-purple-400 to-purple-500' },
+    { label: 'Rendez-vous', href: '/appointments', icon: Calendar, color: 'from-olive-400 to-olive-500' },
 ];
 
 export default function Dashboard() {
@@ -54,27 +54,27 @@ export default function Dashboard() {
     const daysLeft = Math.max(0, cycleLen - currentDay);
 
     const stats = [
-        { label: 'Jour du cycle', value: 'Jour ' + currentDay, sub: 'sur ' + cycleLen, icon: Heart, grad: 'from-pink-500 to-purple-600' },
-        { label: 'Prochaines règles', value: nextPeriod ? new Date(nextPeriod.predicted_date).toLocaleDateString('fr', { month: 'short', day: 'numeric' }) : daysLeft + ' jours', sub: nextPeriod ? 'prévu' : 'restants', icon: Calendar, grad: 'from-indigo-500 to-pink-600' },
-        { label: 'Cycle moyen', value: cycleLen + ' jours', sub: cycles.length + ' cycles suivis', icon: Activity, grad: 'from-amber-500 to-orange-500' },
-        { label: 'Ovulation', value: nextOvulation ? new Date(nextOvulation.predicted_date).toLocaleDateString('fr', { month: 'short', day: 'numeric' }) : 'Jour 14', sub: 'date prévue', icon: Moon, grad: 'from-teal-500 to-cyan-600' },
+        { label: 'Jour du cycle', value: 'Jour ' + currentDay, sub: 'sur ' + cycleLen, icon: Heart, grad: 'from-pink-500 to-pink-600' },
+        { label: 'Prochaines règles', value: nextPeriod ? new Date(nextPeriod.predicted_date).toLocaleDateString('fr', { month: 'short', day: 'numeric' }) : daysLeft + ' jours', sub: nextPeriod ? 'prévu' : 'restants', icon: Calendar, grad: 'from-purple-500 to-purple-600' },
+        { label: 'Cycle moyen', value: cycleLen + ' jours', sub: cycles.length + ' cycles suivis', icon: Activity, grad: 'from-olive-500 to-olive-600' },
+        { label: 'Ovulation', value: nextOvulation ? new Date(nextOvulation.predicted_date).toLocaleDateString('fr', { month: 'short', day: 'numeric' }) : 'Jour 14', sub: 'date prévue', icon: Moon, grad: 'from-pink-400 to-purple-500' },
     ];
 
     return (
         <AppLayout title='Tableau de bord'>
-            <div className='mb-6 rounded-2xl p-6 text-white relative overflow-hidden group hover:scale-[1.01] transition-all duration-300 shadow-xl shadow-pink-500/20' style={{ background: 'linear-gradient(135deg,#f472b6,#ffb6c1,#fb7185)' }}>
+            <div className='mb-6 rounded-2xl p-6 text-white relative overflow-hidden group hover:scale-[1.01] transition-all duration-300 shadow-xl shadow-olive-500/20' style={{ background: 'linear-gradient(135deg,#A5A05A,#B1AF76,#848048)' }}>
                 <div className='absolute top-0 right-0 w-64 h-64 bg-white/20 blur-3xl rounded-full group-hover:bg-white/30 transition-all duration-500' style={{ transform: 'translate(20%,-20%)' }}></div>
                 <div className='relative z-10'>
                     <div className='flex items-center gap-3 mb-3'>
                         <span className='text-3xl'>{P.emoji}</span>
                         <div>
                             <h2 className='text-xl font-bold'>Bonjour, {((user.name || user.nom || '').split(' ')[0]) || 'là'} ! 👋</h2>
-                            <p className='text-pink-200 text-sm'>{P.label} • Jour {currentDay} de votre cycle</p>
+                            <p className='text-olive-50/80 text-sm'>{P.label} • Jour {currentDay} de votre cycle</p>
                         </div>
                     </div>
                     <div className='flex items-center gap-2'>
                         <div className='flex-1 bg-white/20 rounded-full h-2'><div className='bg-white rounded-full h-2 transition-all' style={{ width: (currentDay / cycleLen * 100) + '%' }}></div></div>
-                        <span className='text-sm text-pink-200 font-medium'>{Math.round(currentDay / cycleLen * 100)}%</span>
+                        <span className='text-sm text-olive-50/90 font-medium'>{Math.round(currentDay / cycleLen * 100)}%</span>
                     </div>
                 </div>
             </div>

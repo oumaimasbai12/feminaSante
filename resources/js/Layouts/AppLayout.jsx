@@ -19,6 +19,10 @@ const adminNav = [
     { label: 'Dashboard Admin', href: '/admin/dashboard', icon: Home },
     { label: 'Gynécologues', href: '/admin/gynecologists', icon: Stethoscope },
 ];
+
+const gynecologistNav = [
+    { label: 'Espace Gynécologue', href: '/gynecologist/dashboard', icon: Stethoscope },
+];
 export default function AppLayout({ children, title }) {
     const [open, setOpen] = useState(false);
     const [notifOpen, setNotifOpen] = useState(false);
@@ -84,7 +88,7 @@ export default function AppLayout({ children, title }) {
     const ini = (n) => (n || 'U').charAt(0).toUpperCase();
 
     return (
-        <div className='flex h-screen overflow-hidden relative' style={{ background: 'linear-gradient(135deg,#fdf2f8 0%,#fff5f5 50%,#fff8ed 100%)' }}>
+        <div className='flex h-screen overflow-hidden relative' style={{ background: 'linear-gradient(135deg,#FDF7F8 0%,#F1E6F0 50%,#EEECE0 100%)' }}>
             {/* Ambient Animated Background Ornaments */}
             <div className='absolute inset-0 overflow-hidden pointer-events-none z-0'>
                 <div className='absolute -top-40 -left-40 w-96 h-96 rounded-full bg-pink-400/20 blur-3xl animate-blob'></div>
@@ -93,7 +97,7 @@ export default function AppLayout({ children, title }) {
             </div>
 
             {open && <div className='fixed inset-0 z-40 bg-black/40 lg:hidden' onClick={() => setOpen(false)} />}
-            <aside className={(open ? 'translate-x-0' : '-translate-x-full') + ' lg:translate-x-0 fixed lg:relative inset-y-0 left-0 z-50 flex flex-col w-64 transition-transform duration-300 ease-in-out flex-shrink-0'} style={{ background: 'linear-gradient(170deg,#f472b6 0%,#ffb6c1 40%,#fb7185 100%)' }}>
+            <aside className={(open ? 'translate-x-0' : '-translate-x-full') + ' lg:translate-x-0 fixed lg:relative inset-y-0 left-0 z-50 flex flex-col w-64 transition-transform duration-300 ease-in-out flex-shrink-0'} style={{ background: 'linear-gradient(170deg,#DB779B 0%,#D9A1D4 40%,#86437E 100%)' }}>
                 <div className='flex items-center justify-between px-5 py-5 border-b border-white/10'>
                     <Logo size='sm' light />
                     <button onClick={() => setOpen(false)} className='lg:hidden text-white/60 hover:text-white'><X size={18} /></button>
@@ -132,6 +136,27 @@ export default function AppLayout({ children, title }) {
                             })}
                         </>
                     )}
+
+                    {/* Gynecologist section — only visible to gynecologists */}
+                    {user.is_gynecologist && (
+                        <>
+                            <div className='px-4 pt-4 pb-1'>
+                                <p className='text-xs font-bold text-white/30 uppercase tracking-widest'>Praticien</p>
+                            </div>
+                            {gynecologistNav.map(it => {
+                                const I = it.icon;
+                                const a = url === it.href || url.startsWith(it.href + '/');
+                                return (
+                                    <Link key={it.href} href={it.href}
+                                        className={'flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 text-sm font-medium ' +
+                                            (a ? 'bg-white/20 text-white' : 'text-white/65 hover:bg-white/10 hover:text-white')}>
+                                        <I size={18} /><span>{it.label}</span>
+                                        {a && <ChevronRight size={13} className='ml-auto' />}
+                                    </Link>
+                                );
+                            })}
+                        </>
+                    )}
                 </nav>
                 <div className='px-3 pb-4 border-t border-white/10 pt-3 space-y-0.5'>
                     <Link href='/profile' className='flex items-center gap-3 px-4 py-2.5 rounded-xl text-white/65 hover:bg-white/10 hover:text-white transition-all'>
@@ -145,7 +170,7 @@ export default function AppLayout({ children, title }) {
                 <header className='flex items-center justify-between px-6 py-4 bg-white/60 backdrop-blur-xl border-b border-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex-shrink-0 relative z-[999]'>
                     <div className='flex items-center gap-3'>
                         <button onClick={() => setOpen(true)} className='lg:hidden p-2 rounded-lg text-gray-500 hover:bg-pink-50 transition-colors'><Menu size={20} /></button>
-                        {title && <h1 className='text-lg font-bold bg-gradient-to-r from-pink-600 to-orange-500 bg-clip-text text-transparent'>{title}</h1>}
+                        {title && <h1 className='text-lg font-bold bg-gradient-to-r from-pink-600 to-olive-500 bg-clip-text text-transparent'>{title}</h1>}
                     </div>
                     <div className='flex items-center gap-2'>
                         <div className='relative notif-dropdown'>
@@ -203,7 +228,7 @@ export default function AppLayout({ children, title }) {
                                 </div>
                             )}
                         </div>
-                        <div className='w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold' style={{ background: 'linear-gradient(135deg,#f472b6,#ffb6c1)' }}>{ini(user.name || user.nom)}</div>
+                        <div className='w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold' style={{ background: 'linear-gradient(135deg,#DB779B,#D9A1D4)' }}>{ini(user.name || user.nom)}</div>
                     </div>
                 </header>
                 <main className='flex-1 overflow-y-auto p-6'>{children}</main>

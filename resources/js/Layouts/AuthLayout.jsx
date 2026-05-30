@@ -3,10 +3,10 @@ import Logo from '../Components/Logo';
 
 export default function AuthLayout({ children, title, subtitle }) {
     return (
-        <div className='min-h-screen flex' style={{background:'linear-gradient(135deg,#fdf2f8 0%,#fff5f5 50%,#fff8ed 100%)'}}>
-            <div className='hidden lg:flex lg:w-5/12 xl:w-1/2 relative overflow-hidden flex-col items-center justify-center' style={{background:'linear-gradient(160deg,#f472b6 0%,#ffb6c1 40%,#fb7185 100%)'}}>
-                <div className='absolute top-20 left-10 w-72 h-72 rounded-full opacity-20 animate-blob' style={{background:'radial-gradient(circle,#a78bfa,transparent)'}}></div>
-                <div className='absolute bottom-20 right-10 w-56 h-56 rounded-full opacity-20 animate-blob animation-delay-2000' style={{background:'radial-gradient(circle,#fcd34d,transparent)'}}></div>
+        <div className='min-h-screen flex' style={{background:'linear-gradient(135deg,#FDF7F8 0%,#F1E6F0 50%,#EEECE0 100%)'}}>
+            <div className='hidden lg:flex lg:w-5/12 xl:w-1/2 relative overflow-hidden flex-col items-center justify-center' style={{background:'linear-gradient(160deg,#DB779B 0%,#D9A1D4 40%,#86437E 100%)'}}>
+                <div className='absolute top-20 left-10 w-72 h-72 rounded-full opacity-20 animate-blob' style={{background:'radial-gradient(circle,#D9A1D4,transparent)'}}></div>
+                <div className='absolute bottom-20 right-10 w-56 h-56 rounded-full opacity-20 animate-blob animation-delay-2000' style={{background:'radial-gradient(circle,#A5A05A,transparent)'}}></div>
                 <div className='relative z-10 text-center px-10'>
                     <Logo size='xl' light className='justify-center mb-8' />
                     <h2 className='text-3xl font-bold text-white mb-4'>Votre santé, votre histoire</h2>

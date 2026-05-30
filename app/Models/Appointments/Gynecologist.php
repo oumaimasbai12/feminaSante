@@ -13,6 +13,7 @@ class Gynecologist extends Model
     use HasFactory;
 
     protected $fillable = [
+        'user_id',
         'first_name',
         'last_name',
         'speciality',
@@ -59,6 +60,11 @@ class Gynecologist extends Model
     public function appointments(): HasMany
     {
         return $this->hasMany(Appointment::class);
+    }
+
+    public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(\App\Models\User::class);
     }
 
     protected static function newFactory(): Factory

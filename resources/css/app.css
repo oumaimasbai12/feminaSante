@@ -5,8 +5,8 @@
 @layer base {
     body { 
         font-family: 'Inter', sans-serif; 
-        background-color: #fdf2f8; /* pink-50 */
-        background-image: radial-gradient(#fbcfe8 1px, transparent 1px); /* subtle dot pattern */
+        background-color: #FDF7F8; 
+        background-image: radial-gradient(#E1C9CD 1px, transparent 1px); /* subtle dot pattern */
         background-size: 24px 24px;
         color: #57534e; /* Warm stone-600 */
     }
@@ -14,34 +14,34 @@
 
 @layer components {
     .card-hover { transition: all 0.3s ease; }
-    .card-hover:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(244,114,182,0.15); }
+    .card-hover:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(219, 119, 155, 0.15); }
     .btn-primary {
-        background: linear-gradient(135deg, #f472b6, #fb7185);
+        background: linear-gradient(135deg, #DB779B, #D9A1D4);
         color: white;
         font-weight: 600;
         border-radius: 12px;
         padding: 12px 24px;
         transition: all 0.3s ease;
-        box-shadow: 0 4px 15px rgba(244,114,182,0.3);
+        box-shadow: 0 4px 15px rgba(219, 119, 155, 0.3);
     }
-    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 25px rgba(244,114,182,0.45); }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 25px rgba(219, 119, 155, 0.45); }
     .input-field {
         @apply w-full rounded-xl bg-white outline-none transition-all text-gray-800 py-3 px-4;
-        border: 1.5px solid #EDE9FE;
+        border: 1.5px solid #F1E6F0;
         font-size: 0.95rem;
     }
-    .input-field:focus { border-color: #f472b6; box-shadow: 0 0 0 3px rgba(244,114,182,0.15); }
-    .card { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(8px); border-radius: 20px; box-shadow: 0 4px 20px rgba(244,114,182,0.08); border: 1px solid rgba(252,231,243,0.8); padding: 24px; }
+    .input-field:focus { border-color: #DB779B; box-shadow: 0 0 0 3px rgba(219, 119, 155, 0.15); }
+    .card { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(8px); border-radius: 20px; box-shadow: 0 4px 20px rgba(219, 119, 155, 0.08); border: 1px solid rgba(225, 201, 205, 0.8); padding: 24px; }
 }
 
 @layer utilities {
     .text-gradient {
-        background: linear-gradient(135deg, #f472b6, #ffb6c1, #fb7185);
+        background: linear-gradient(135deg, #DB779B, #D9A1D4, #86437E);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
     }
-    .bg-gradient-femina { background: linear-gradient(135deg, #f472b6 0%, #ffb6c1 50%, #fb7185 100%); }
+    .bg-gradient-femina { background: linear-gradient(135deg, #DB779B 0%, #D9A1D4 50%, #86437E 100%); }
     .glass {
         background: rgba(255, 255, 255, 0.88);
         backdrop-filter: blur(12px);
@@ -54,16 +54,16 @@
 }
 
 ::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: #fdf2f8; }
-::-webkit-scrollbar-thumb { background: linear-gradient(#f472b6, #fb7185); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #f472b6; }
+::-webkit-scrollbar-track { background: #FDF7F8; }
+::-webkit-scrollbar-thumb { background: linear-gradient(#DB779B, #D9A1D4); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #DB779B; }
 
 @keyframes shimmer {
     0% { background-position: -1000px 0; }
     100% { background-position: 1000px 0; }
 }
 .skeleton {
-    background: linear-gradient(90deg, #fce7f3 25%, #fbcfe8 50%, #fce7f3 75%);
+    background: linear-gradient(90deg, #F1E6F0 25%, #E1C9CD 50%, #F1E6F0 75%);
     background-size: 200% 100%;
     animation: shimmer 1.5s infinite;
 }

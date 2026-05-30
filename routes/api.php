@@ -143,5 +143,12 @@ Route::prefix('v1')->group(function () {
             Route::put('/articles/{article}', [ArticleController::class, 'update']);
             Route::delete('/articles/{article}', [ArticleController::class, 'destroy']);
         });
+
+        // ── GYNECOLOGIST ─────────────────────────────────
+        Route::prefix('gynecologist')->middleware('gynecologist')->group(function () {
+            Route::get('/dashboard', \App\Http\Controllers\Api\Gynecologist\DashboardController::class);
+            Route::put('/appointments/{appointment}/status', [\App\Http\Controllers\Api\Gynecologist\AppointmentController::class, 'updateStatus']);
+            Route::put('/appointments/{appointment}/notes', [\App\Http\Controllers\Api\Gynecologist\AppointmentController::class, 'updateNotes']);
+        });
     });
 });

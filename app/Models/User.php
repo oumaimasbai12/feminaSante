@@ -25,6 +25,7 @@ class User extends Authenticatable
         'medical_history',
         'notification_settings',
         'langage',
+        'is_gynecologist',
     ];
 
     /**
@@ -47,6 +48,7 @@ class User extends Authenticatable
             'medical_history' => 'array',
             'notification_settings' => 'array',
             'motDePasse' => 'hashed',
+            'is_gynecologist' => 'boolean',
         ];
     }
 
@@ -93,6 +95,11 @@ class User extends Authenticatable
     public function menopauses(): HasMany
     {
         return $this->hasMany(Menopause::class);
+    }
+
+    public function gynecologistProfile(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(\App\Models\Appointments\Gynecologist::class, 'user_id');
     }
 
     public function appNotifications(): HasMany
