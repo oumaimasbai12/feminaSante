@@ -2,14 +2,11 @@
 
 namespace App\Models\Articles;
 
-use Illuminate\Database\Eloquent\Relations\Pivot;
+use Illuminate\Database\Eloquent\Model;
 
-class ArticleLike extends Pivot
+class ArticleLike extends Model
 {
     protected $table = 'article_likes';
-
-    public $incrementing = false;
-    public $timestamps = false;
 
     protected $fillable = [
         'user_id',

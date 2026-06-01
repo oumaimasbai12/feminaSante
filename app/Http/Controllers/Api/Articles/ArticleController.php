@@ -54,13 +54,18 @@ class ArticleController extends Controller
         ], 201);
     }
 
-    public function show(Article $article): JsonResponse
+    public function show(Request $request, Article $article): JsonResponse
     {
         $article->increment('views_count');
+        $user = $request->user();
+        
+        $isLiked = $user ? $article->likedByUsers()->where('user_id', $user->id)->exists() : false;
 
-        return response()->json(
-            $article->load(['category', 'author', 'comments.user'])
-        );
+        $articleData = $article->load(['category', 'author', 'comments.user'])->toArray();
+
+        return response()->json(array_merge($articleData, [
+            'is_liked' => $isLiked
+        ]));
     }
     public function update(Request $request, Article $article): JsonResponse
     {

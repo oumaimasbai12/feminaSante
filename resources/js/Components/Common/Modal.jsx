@@ -36,12 +36,12 @@ export default function Modal({ children, show = false, maxWidth = '2xl', closea
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
             <button
                 type="button"
-                className="absolute inset-0 bg-gray-900/50 backdrop-blur-sm"
+                className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
                 aria-label="Fermer la fenêtre"
                 onClick={close}
             />
             <div
-                className={`relative z-10 w-full ${maxWidthClass} bg-white rounded-2xl text-left overflow-hidden shadow-xl`}
+                className={`relative z-10 w-full ${maxWidthClass} bg-white rounded-2xl text-left shadow-sm border border-slate-200`}
                 onClick={(e) => e.stopPropagation()}
             >
                 {children}

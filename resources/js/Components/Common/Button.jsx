@@ -1,13 +1,13 @@
 import React from 'react';
 
 export default function Button({ type = 'button', className = '', processing, children, variant = 'primary', ...props }) {
-    const baseStyle = "inline-flex items-center justify-center px-4 py-2 border rounded-md font-semibold text-xs uppercase tracking-widest transition ease-in-out duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed";
+    const baseStyle = "inline-flex items-center justify-center px-6 py-3 rounded-xl font-semibold text-sm transition ease-in-out duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed";
     
     const variants = {
-        primary: "bg-rose-600 border-transparent text-white hover:bg-rose-700 active:bg-rose-800 focus:ring-rose-500",
-        secondary: "bg-white border-gray-300 text-gray-700 hover:bg-gray-50 active:bg-gray-100 focus:ring-indigo-500",
+        primary: "bg-gradient-to-r from-rose-500 to-rose-600 border-transparent text-white hover:from-rose-600 hover:to-rose-700 focus:ring-rose-500",
+        secondary: "bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 active:bg-slate-100 focus:ring-rose-500",
         danger: "bg-red-600 border-transparent text-white hover:bg-red-700 active:bg-red-800 focus:ring-red-500",
-        ghost: "bg-transparent border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:ring-gray-500"
+        ghost: "bg-transparent border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:ring-slate-500"
     };
 
     return (

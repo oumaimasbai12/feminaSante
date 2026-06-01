@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import AdminLayout from '@/Components/Layouts/AdminLayout';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 
-export default function Show({ auth, userRecord }) {
-    // Mock user details since we don't have real data bound yet
-    const patient = userRecord?.data || {
+export default function Show({ auth, userData }) {
+    const [deleting, setDeleting] = useState(false);
+
+    const patient = userData || {
         id: 1,
         nom: "Marie Dupont",
         email: "marie.dupont@test.fr",
@@ -12,6 +13,24 @@ export default function Show({ auth, userRecord }) {
         settings: { notifications_active: true },
         pregnancies: [{ id: 1, current_week: 24, status: 'active' }],
         menopauses: []
+    };
+
+    const handleDelete = async () => {
+        if (!confirm(`Êtes-vous sûr de vouloir supprimer le profil de ${patient.nom} ?`)) {
+            return;
+        }
+        
+        setDeleting(true);
+        
+        try {
+            await window.axios.delete(`/api/v1/admin/users/${patient.id}`);
+            router.visit('/admin/users');
+        } catch (e) {
+            console.error('Error deleting user:', e);
+            alert('Erreur lors de la suppression du profil.');
+        } finally {
+            setDeleting(false);
+        }
     };
 
     return (
@@ -44,8 +63,12 @@ export default function Show({ auth, userRecord }) {
                     <div className="bg-red-50 text-red-700 rounded-2xl border border-red-200 shadow-sm p-6">
                         <h4 className="font-bold mb-2">Zone Dangereuse</h4>
                         <p className="text-sm text-red-600/80 mb-4 font-medium">La suppression d'un compte entraîne l'effacement complet des historiques médicaux de façon irréversible.</p>
-                        <button className="w-full py-2 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 shadow-sm transition">
-                            Supprimer ce profil
+                        <button 
+                            onClick={handleDelete} 
+                            disabled={deleting} 
+                            className="w-full py-2 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 shadow-sm transition disabled:opacity-50"
+                        >
+                            {deleting ? 'Suppression en cours...' : 'Supprimer ce profil'}
                         </button>
                     </div>
                 </div>

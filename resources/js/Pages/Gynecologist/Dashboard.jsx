@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { usePage } from '@inertiajs/react';
 import { Head, router } from '@inertiajs/react';
 import GynecologistLayout from '@/Layouts/GynecologistLayout';
 import {
@@ -51,10 +52,13 @@ function Toast({ message, type, onClose }) {
     );
 }
 
-export default function Dashboard() {
+export default function GynecologistDashboard() {
+    const { url } = usePage();
     const [list, setList] = useState([]);
     const [stats, setStats] = useState({});
     const [gynName, setGynName] = useState('');
+
+    const pageTitle = url.includes('/appointments') ? 'Gestion des Rendez-vous' : 'Tableau de bord';
     const [pageLoading, setPageLoading] = useState(true);
     const [processingId, setProcessingId] = useState(null);
     const [toast, setToast] = useState(null);
@@ -70,7 +74,14 @@ export default function Dashboard() {
 
         window.axios.get('/api/v1/gynecologist/dashboard')
             .then(res => {
-                setList(res.data.appointments ?? []);
+                // Sort appointments: pending first, then confirmed, then completed/cancelled, ordered by date
+                const sortedAppointments = [...(res.data.appointments ?? [])].sort((a, b) => {
+                    const statusOrder = { pending: 0, confirmed: 1, completed: 3, cancelled: 4 };
+                    const statusDiff = (statusOrder[a.status] ?? 5) - (statusOrder[b.status] ?? 5);
+                    if (statusDiff !== 0) return statusDiff;
+                    return new Date(a.start_time) - new Date(b.start_time);
+                });
+                setList(sortedAppointments);
                 setStats(res.data.stats ?? {});
                 setGynName(res.data.gynecologist_name ?? '');
             })
@@ -115,7 +126,7 @@ export default function Dashboard() {
 
     if (pageLoading) {
         return (
-            <GynecologistLayout title="Tableau de bord">
+            <GynecologistLayout title={pageTitle}>
                 <Head title="Portail Gynécologue" />
                 <div className="flex items-center justify-center h-64">
                     <Loader2 className="w-10 h-10 text-teal-500 animate-spin" />
@@ -125,34 +136,38 @@ export default function Dashboard() {
     }
 
     return (
-        <GynecologistLayout title="Tableau de bord">
+        <GynecologistLayout title={pageTitle}>
             <Head title="Portail Gynécologue" />
 
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
             <div className="max-w-7xl mx-auto space-y-8">
 
-                {/* Welcome Banner */}
-                <div className="p-8 bg-gradient-to-r from-teal-500 to-emerald-500 rounded-2xl shadow-lg relative overflow-hidden">
-                    <div className="relative z-10 text-white">
-                        <h1 className="text-3xl font-extrabold mb-2">Bonjour, Dr. {gynName} 👩‍⚕️</h1>
-                        <p className="text-teal-100 text-lg">Voici un résumé de vos rendez-vous et vos patientes.</p>
-                    </div>
-                    <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full bg-white/10" />
-                    <div className="absolute bottom-0 right-32 -mb-20 w-48 h-48 rounded-full bg-white/10" />
-                </div>
+                {!url.includes('/appointments') && (
+                    <>
+                        {/* Welcome Banner */}
+                        <div className="p-8 bg-gradient-to-r from-teal-500 to-emerald-500 rounded-2xl shadow-lg relative overflow-hidden">
+                            <div className="relative z-10 text-white">
+                                <h1 className="text-3xl font-extrabold mb-2">Bonjour, Dr. {gynName} 👩‍⚕️</h1>
+                                <p className="text-teal-100 text-lg">Voici un résumé de vos rendez-vous et vos patientes.</p>
+                            </div>
+                            <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full bg-white/10" />
+                            <div className="absolute bottom-0 right-32 -mb-20 w-48 h-48 rounded-full bg-white/10" />
+                        </div>
 
-                {/* Stats */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <StatCard title="Total RDV" value={stats.total_appointments}
-                        icon={<Calendar className="w-7 h-7" />} bgColor="bg-blue-100" textColor="text-blue-600" />
-                    <StatCard title="En Attente" value={stats.pending_appointments}
-                        icon={<Clock className="w-7 h-7" />} bgColor="bg-amber-100" textColor="text-amber-600" />
-                    <StatCard title="Confirmés" value={stats.confirmed_appointments}
-                        icon={<CheckCircle className="w-7 h-7" />} bgColor="bg-emerald-100" textColor="text-emerald-600" />
-                    <StatCard title="Terminés" value={stats.completed_appointments}
-                        icon={<List className="w-7 h-7" />} bgColor="bg-violet-100" textColor="text-violet-600" />
-                </div>
+                        {/* Stats */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <StatCard title="Total RDV" value={stats.total_appointments}
+                                icon={<Calendar className="w-7 h-7" />} bgColor="bg-blue-100" textColor="text-blue-600" />
+                            <StatCard title="En Attente" value={stats.pending_appointments}
+                                icon={<Clock className="w-7 h-7" />} bgColor="bg-amber-100" textColor="text-amber-600" />
+                            <StatCard title="Confirmés" value={stats.confirmed_appointments}
+                                icon={<CheckCircle className="w-7 h-7" />} bgColor="bg-emerald-100" textColor="text-emerald-600" />
+                            <StatCard title="Terminés" value={stats.completed_appointments}
+                                icon={<List className="w-7 h-7" />} bgColor="bg-violet-100" textColor="text-violet-600" />
+                        </div>
+                    </>
+                )}
 
                 {/* Table */}
                 <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border border-teal-100/60 overflow-hidden">

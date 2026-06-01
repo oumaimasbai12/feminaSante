@@ -35,29 +35,58 @@ export default function Register() {
 
     return (
         <AuthLayout title='Créer votre compte' subtitle='Commencez votre parcours santé personnalisé'>
-            {error && <div className='mb-6 p-4 rounded-xl bg-red-50 border border-red-100 text-red-600 text-sm'>{error}</div>}
-            <form onSubmit={submit} className='space-y-4'>
+            {error && (
+                <div className='mb-6 p-4 rounded-xl bg-rose-50 border border-rose-100 text-rose-700 text-sm'>
+                    {error}
+                </div>
+            )}
+            <form onSubmit={submit} className='space-y-5'>
                 {fields.map(f => {
                     const I = f.icon;
                     return (
                         <div key={f.key}>
-                            <label className='block text-sm font-semibold text-gray-700 mb-2'>{f.label}</label>
+                            <label className='block text-sm font-semibold text-slate-700 mb-2'>{f.label}</label>
                             <div className='relative'>
-                                <I size={18} className='absolute left-4 top-1/2 -translate-y-1/2 text-gray-400'/>
-                                <input type={f.type} required value={form[f.key]} onChange={set(f.key)} placeholder={f.placeholder} className='input-field pl-11 pr-11'/>
-                                {f.toggle && <button type='button' onClick={()=>setShow(!show)} className='absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600'>{show?<EyeOff size={18}/>:<Eye size={18}/>}</button>}
+                                <I size={18} className='absolute left-4 top-1/2 -translate-y-1/2 text-slate-400'/>
+                                <input 
+                                    type={f.type} 
+                                    required 
+                                    value={form[f.key]} 
+                                    onChange={set(f.key)} 
+                                    placeholder={f.placeholder} 
+                                    className='w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none transition-all pl-11 pr-11'
+                                />
+                                {f.toggle && (
+                                    <button 
+                                        type='button' 
+                                        onClick={()=>setShow(!show)} 
+                                        className='absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors'
+                                    >
+                                        {show?<EyeOff size={18}/>:<Eye size={18}/>}
+                                    </button>
+                                )}
                             </div>
                         </div>
                     );
                 })}
-                <p className='text-xs text-gray-400 pt-1'>En créant un compte, vous acceptez nos <a href='#' className='text-pink-700 hover:underline'>Conditions</a> et notre <a href='#' className='text-pink-700 hover:underline'>Politique de confidentialité</a>.</p>
-                <button type='submit' disabled={loading} className='btn-primary w-full flex items-center justify-center gap-2 py-3.5 text-base mt-2'>
-                    {loading ? (<><span className='w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin'></span>Création du compte...</>) : (<>Créer mon compte <ArrowRight size={18}/></>)}
+                <p className='text-xs text-slate-500 pt-1'>
+                    En créant un compte, vous acceptez nos <Link href='/terms' className='text-rose-600 hover:underline font-medium'>Conditions</Link> et notre <Link href='/privacy' className='text-rose-600 hover:underline font-medium'>Politique de confidentialité</Link>.
+                </p>
+                <button 
+                    type='submit' 
+                    disabled={loading} 
+                    className='w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 text-white font-semibold hover:from-rose-600 hover:to-rose-700 transition-all shadow-sm disabled:opacity-50'
+                >
+                    {loading ? (
+                        <><span className='w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin'></span>Création du compte...</>
+                    ) : (
+                        <>Créer mon compte <ArrowRight size={18}/></>
+                    )}
                 </button>
             </form>
-            <p className='mt-8 text-center text-sm text-gray-500'>
+            <p className='mt-8 text-center text-sm text-slate-500'>
                 Déjà un compte ?{' '}
-                <Link href='/login' className='font-semibold text-pink-700 hover:text-pink-800 transition-colors'>Se connecter</Link>
+                <Link href='/login' className='font-semibold text-rose-600 hover:text-rose-700 transition-colors'>Se connecter</Link>
             </p>
         </AuthLayout>
     );

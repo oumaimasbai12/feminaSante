@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import AdminLayout from '@/Components/Layouts/AdminLayout';
 import { Head, Link } from '@inertiajs/react';
 
 export default function Index({ auth, users }) {
+    const [deleting, setDeleting] = useState(null);
+
     // Scaffold fallback if no real users provided by inertia prop
     const mockUsers = [
         { id: 1, nom: "Marie Dupont", email: "marie.dupont@test.fr", is_admin: 0, created_at: "2026-01-10T14:30:00Z" },
@@ -11,6 +13,24 @@ export default function Index({ auth, users }) {
     ];
 
     const dataList = users?.data ? users.data : mockUsers;
+
+    const handleDelete = async (user) => {
+        if (!confirm(`Êtes-vous sûr de vouloir supprimer le profil de ${user.nom} ?`)) {
+            return;
+        }
+        
+        setDeleting(user.id);
+        
+        try {
+            await window.axios.delete(`/api/v1/admin/users/${user.id}`);
+            window.location.reload();
+        } catch (e) {
+            console.error('Error deleting user:', e);
+            alert('Erreur lors de la suppression du profil.');
+        } finally {
+            setDeleting(null);
+        }
+    };
 
     return (
         <AdminLayout
@@ -56,7 +76,13 @@ export default function Index({ auth, users }) {
                                     <td className="px-6 py-4 text-right">
                                         <Link href={`/admin/users/${user.id}`} className="text-blue-600 hover:text-blue-900 font-semibold mr-4">Consulter</Link>
                                         {!user.is_admin && (
-                                            <button className="text-red-500 hover:text-red-700 font-semibold">Bannir / Suppr.</button>
+                                            <button 
+                                                onClick={() => handleDelete(user)} 
+                                                disabled={deleting === user.id} 
+                                                className="text-red-500 hover:text-red-700 font-semibold disabled:opacity-50"
+                                            >
+                                                {deleting === user.id ? 'Suppression...' : 'Bannir / Suppr.'}
+                                            </button>
                                         )}
                                     </td>
                                 </tr>

@@ -2,34 +2,42 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class AdminUserSeeder extends Seeder
 {
     public function run(): void
     {
-        User::updateOrCreate(
+        DB::table('users')->updateOrInsert(
             ['email' => 'admin@feminasante.ma'],
             [
+                'name' => 'Admin Femina',
+                'password' => Hash::make('Admin@1234'),
                 'nom' => 'Admin Femina',
                 'motDePasse' => Hash::make('Admin@1234'),
                 'is_admin' => true,
                 'gender' => 'female',
                 'langage' => 'fr',
+                'created_at' => now(),
+                'updated_at' => now(),
             ]
         );
 
-        User::updateOrCreate(
+        DB::table('users')->updateOrInsert(
             ['email' => 'demo@feminasante.ma'],
             [
+                'name' => 'Fatima Demo',
+                'password' => Hash::make('Demo@1234'),
                 'nom' => 'Fatima Demo',
                 'motDePasse' => Hash::make('Demo@1234'),
                 'is_admin' => false,
                 'gender' => 'female',
                 'langage' => 'fr',
                 'birth_date' => '1992-05-14',
+                'created_at' => now(),
+                'updated_at' => now(),
             ]
         );
 

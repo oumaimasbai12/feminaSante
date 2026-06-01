@@ -12,6 +12,9 @@ class DatabaseSeeder extends Seeder
             AdminUserSeeder::class,
             ArticleCategorySeeder::class,
             DiseaseCategorySeeder::class,
+            StaticQuizSeeder::class,
+            GynecologistSeeder::class,
+            WikipediaArticleSeeder::class,
             GeminiContentSeeder::class,
         ]);
     }

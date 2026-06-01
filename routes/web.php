@@ -73,6 +73,7 @@ Route::prefix("admin")->group(function () {
 
     Route::get('/articles', fn() => Inertia::render('Admin/Articles/Index'))->name('admin.articles');
     Route::get('/articles/create', fn() => Inertia::render('Admin/Articles/Form'))->name('admin.articles.create');
+    Route::get('/articles/{id}/edit', fn($id) => Inertia::render('Admin/Articles/Form', ['articleId' => $id]))->name('admin.articles.edit');
 });
 
 // ─────────────────────────────────────────────
@@ -85,5 +86,6 @@ Route::prefix("admin")->group(function () {
 // ─────────────────────────────────────────────
 Route::prefix('gynecologist')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('gynecologist.dashboard');
+    Route::get('/appointments', [DashboardController::class, 'index'])->name('gynecologist.appointments');
     Route::redirect('/', '/gynecologist/dashboard');
 });

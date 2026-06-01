@@ -812,32 +812,32 @@ export default function Pregnancies() {
 
             {/* ── Create form ── */}
             {!loading && showForm && (
-                <div className='max-w-lg mx-auto card'>
-                    <h3 className='text-xl font-bold text-gray-900 mb-6'>Nouvelle grossesse</h3>
+                <div className='max-w-lg mx-auto bg-white rounded-2xl border border-slate-200 shadow-sm p-6'>
+                    <h3 className='text-xl font-bold text-slate-900 mb-6'>Nouvelle grossesse</h3>
                     <div className='space-y-4'>
                         <div>
-                            <label className='block text-sm font-semibold text-gray-700 mb-2'>Date des dernières règles</label>
-                            <input type='date' value={form.start_date} onChange={e => setForm({ ...form, start_date: e.target.value })} className='input-field' />
+                            <label className='block text-sm font-semibold text-slate-700 mb-2'>Date des dernières règles</label>
+                            <input type='date' value={form.start_date} onChange={e => setForm({ ...form, start_date: e.target.value })} className='w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none transition-all' />
                         </div>
                         <div>
-                            <label className='block text-sm font-semibold text-gray-700 mb-2'>Date d'accouchement prévue (optionnel)</label>
-                            <input type='date' value={form.due_date} onChange={e => setForm({ ...form, due_date: e.target.value })} className='input-field' />
+                            <label className='block text-sm font-semibold text-slate-700 mb-2'>Date d'accouchement prévue (optionnel)</label>
+                            <input type='date' value={form.due_date} onChange={e => setForm({ ...form, due_date: e.target.value })} className='w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none transition-all' />
                         </div>
                         <div>
-                            <label className='block text-sm font-semibold text-gray-700 mb-2'>Type de grossesse</label>
-                            <select value={form.pregnancy_type} onChange={e => setForm({ ...form, pregnancy_type: e.target.value })} className='input-field'>
+                            <label className='block text-sm font-semibold text-slate-700 mb-2'>Type de grossesse</label>
+                            <select value={form.pregnancy_type} onChange={e => setForm({ ...form, pregnancy_type: e.target.value })} className='w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none transition-all'>
                                 <option value='simple'>Simple</option>
                                 <option value='twins'>Jumeaux</option>
                                 <option value='triplets'>Triplés</option>
                             </select>
                         </div>
                         <div>
-                            <label className='block text-sm font-semibold text-gray-700 mb-2'>Notes</label>
-                            <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} rows={3} className='input-field resize-none' />
+                            <label className='block text-sm font-semibold text-slate-700 mb-2'>Notes</label>
+                            <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} rows={3} className='w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none transition-all resize-none' />
                         </div>
                         <div className='flex gap-3'>
-                            <button onClick={save} className='btn-primary flex-1'>Commencer</button>
-                            <button onClick={() => setShowForm(false)} className='flex-1 border-2 border-gray-200 text-gray-600 font-semibold rounded-xl px-4 py-3 hover:bg-gray-50 transition-all'>Annuler</button>
+                            <button onClick={save} className='flex-1 px-5 py-3 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 text-white font-semibold hover:from-rose-600 hover:to-rose-700 transition-all shadow-sm'>Commencer</button>
+                            <button onClick={() => setShowForm(false)} className='flex-1 px-5 py-3 rounded-xl border-2 border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 transition-all'>Annuler</button>
                         </div>
                     </div>
                 </div>

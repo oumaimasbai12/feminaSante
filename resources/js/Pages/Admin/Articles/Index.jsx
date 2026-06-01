@@ -17,7 +17,7 @@ export default function AdminArticles() {
         setLoading(true);
         window.axios.get('/api/v1/articles')
             .then(r => setArticles(Array.isArray(r.data) ? r.data : (r.data.data || [])))
-            .catch(() => { })
+            .catch(() => {})
             .finally(() => setLoading(false));
     };
 
@@ -50,26 +50,26 @@ export default function AdminArticles() {
     return (
         <AdminLayout user={user}>
             <div className="flex items-center justify-between mb-6">
-                <h1 className="text-2xl font-extrabold text-slate-800">Articles</h1>
-                <Link href="/admin/articles/create" className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition">
+                <h1 className="text-2xl font-extrabold text-slate-900">Articles</h1>
+                <Link href="/admin/articles/create" className="inline-flex items-center gap-2 bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition shadow-sm">
                     <Plus size={16} /> Nouvel article
                 </Link>
             </div>
 
-            {msg && <div className="mb-4 p-3 rounded-lg bg-green-50 text-green-700 text-sm font-semibold">{msg}</div>}
+            {msg && <div className="mb-4 p-4 rounded-xl bg-green-50 text-green-700 text-sm font-semibold border border-green-200">{msg}</div>}
 
-            <div className="bg-white rounded-xl border border-slate-200 p-4 mb-5">
+            <div className="bg-white rounded-xl border border-slate-200 p-4 mb-5 shadow-sm">
                 <div className="relative">
                     <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input value={query} onChange={e => setQuery(e.target.value)}
                         placeholder="Rechercher par titre ou catégorie..."
-                        className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-300" />
+                        className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-100 focus:border-rose-500" />
                 </div>
             </div>
 
             {loading && <div className="text-center py-12 text-slate-400">Chargement...</div>}
 
-            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
                 <table className="w-full text-sm">
                     <thead className="bg-slate-50 border-b border-slate-200">
                         <tr>
@@ -89,7 +89,7 @@ export default function AdminArticles() {
                                     <p className="text-xs text-slate-400 mt-0.5">{new Date(a.created_at).toLocaleDateString('fr-FR')}</p>
                                 </td>
                                 <td className="px-4 py-3 hidden md:table-cell">
-                                    <span className="px-2 py-1 rounded-full bg-pink-50 text-pink-700 text-xs font-medium">
+                                    <span className="px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 text-xs font-medium">
                                         {a.category?.nom || '—'}
                                     </span>
                                 </td>
@@ -112,11 +112,11 @@ export default function AdminArticles() {
                                 <td className="px-4 py-3">
                                     <div className="flex items-center gap-2 justify-end">
                                         <Link href={`/admin/articles/${a.id}/edit`}
-                                            className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-pink-600 hover:border-pink-200 transition">
+                                            className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-rose-600 hover:border-rose-300 transition">
                                             <Pencil size={14} />
                                         </Link>
                                         <button onClick={() => destroy(a)}
-                                            className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-red-600 hover:border-red-200 transition">
+                                            className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-red-600 hover:border-red-300 transition">
                                             <Trash2 size={14} />
                                         </button>
                                     </div>

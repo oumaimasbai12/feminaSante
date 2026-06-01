@@ -9,19 +9,21 @@ use App\Models\Assistant\Chat;
 use App\Models\Appointments\Appointment;
 use App\Models\Cycle;
 use App\Models\Menopause\Menopause;
-use App\Models\Prediction;
 use App\Models\Pregnancy\Pregnancy;
 use App\Models\Quiz\QuizResult;
+use App\Services\CycleService;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
-    public function __invoke(Request $request): JsonResponse
+    public function __invoke(Request $request, CycleService $cycleService): JsonResponse
     {
         $user = $request->user();
 
-        $latestCycle = Cycle::where('user_id', $user->id)->latest('start_date')->first();
+        $cycles = Cycle::where('user_id', $user->id)->orderBy('start_date')->get();
+        $latestCycle = $cycles->last();
         $activePregnancy = Pregnancy::where('user_id', $user->id)
             ->where('statuts', 'ongoing')
             ->latest('start_date')
@@ -29,10 +31,6 @@ class DashboardController extends Controller
         $activeMenopause = Menopause::where('user_id', $user->id)
             ->where('status', 'ongoing')
             ->latest('diagnosis_date')
-            ->first();
-        $nextPrediction = Prediction::where('user_id', $user->id)
-            ->whereDate('predicted_date', '>=', now()->toDateString())
-            ->orderBy('predicted_date')
             ->first();
         $nextAppointment = Appointment::with('gynecologist')
             ->where('user_id', $user->id)
@@ -47,6 +45,15 @@ class DashboardController extends Controller
 
         $unreadNotificationsQuery = AppNotification::where('user_id', $user->id)->whereNull('read_at');
 
+        $predictions = $cycles->count() >= 2 ? $cycleService->getPredictions($cycles) : [];
+        $nextPeriodPrediction = collect($predictions)->firstWhere('type', 'period');
+        $nextOvulationPrediction = collect($predictions)->firstWhere('type', 'ovulation');
+
+        $daysUntilNextPeriod = null;
+        if ($nextPeriodPrediction) {
+            $daysUntilNextPeriod = Carbon::now()->diffInDays(Carbon::parse($nextPeriodPrediction['predicted_date']), false);
+        }
+
         return response()->json([
             'user' => [
                 'id' => $user->id,
@@ -55,7 +62,7 @@ class DashboardController extends Controller
                 'langage' => $user->langage,
             ],
             'stats' => [
-                'cycles_count' => Cycle::where('user_id', $user->id)->count(),
+                'cycles_count' => $cycles->count(),
                 'pregnancies_count' => Pregnancy::where('user_id', $user->id)->count(),
                 'menopauses_count' => Menopause::where('user_id', $user->id)->count(),
                 'appointments_count' => Appointment::where('user_id', $user->id)->count(),
@@ -67,7 +74,9 @@ class DashboardController extends Controller
                 'latest_cycle' => $latestCycle,
                 'active_pregnancy' => $activePregnancy,
                 'active_menopause' => $activeMenopause,
-                'next_prediction' => $nextPrediction,
+                'predictions' => $predictions,
+                'days_until_next_period' => $daysUntilNextPeriod,
+                'current_cycle_day' => $latestCycle ? $cycleService->getCurrentCycleDay($latestCycle) : null,
             ],
             'care' => [
                 'next_appointment' => $nextAppointment,

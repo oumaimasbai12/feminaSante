@@ -11,13 +11,14 @@ class MenopauseController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        return response()->json(
-            Menopause::where('user_id', $request->user()->id)
-                ->orderByRaw("CASE WHEN status = 'ongoing' THEN 0 ELSE 1 END")
-                ->latest('diagnosis_date')
-                ->latest()
-                ->get()
-        );
+        $menopauses = Menopause::where('user_id', $request->user()->id)
+            ->orderByRaw("CASE WHEN status = 'ongoing' THEN 0 ELSE 1 END")
+            ->latest('diagnosis_date')
+            ->latest()
+            ->with(['symptomLogs' => fn($q) => $q->latest('log_date')->take(14), 'treatments'])
+            ->get();
+
+        return response()->json($menopauses);
     }
 
     public function store(Request $request): JsonResponse

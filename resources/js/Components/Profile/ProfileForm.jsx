@@ -7,20 +7,35 @@ export default function ProfileForm({ user }) {
             <form className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Prénom / Nom</label>
-                        <input type="text" className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" defaultValue={user?.name || ''} />
+                        <label className="block text-sm font-semibold text-slate-700 mb-2">Prénom / Nom</label>
+                        <input 
+                            type="text" 
+                            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none transition-all" 
+                            defaultValue={user?.name || ''} 
+                        />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                        <input type="email" className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" defaultValue={user?.email || ''} />
+                        <label className="block text-sm font-semibold text-slate-700 mb-2">Email</label>
+                        <input 
+                            type="email" 
+                            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none transition-all" 
+                            defaultValue={user?.email || ''} 
+                        />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Âge</label>
-                        <input type="number" className="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" defaultValue={user?.age || ''} />
+                        <label className="block text-sm font-semibold text-slate-700 mb-2">Âge</label>
+                        <input 
+                            type="number" 
+                            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none transition-all" 
+                            defaultValue={user?.age || ''} 
+                        />
                     </div>
                 </div>
-                <div className="flex justify-end pt-4 border-t border-gray-100">
-                    <button type="button" className="px-6 py-2 bg-indigo-600 text-white rounded-md font-medium hover:bg-indigo-700 transition shadow-sm">
+                <div className="flex justify-end pt-4 border-t border-slate-100">
+                    <button 
+                        type="button" 
+                        className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 text-white font-semibold hover:from-rose-600 hover:to-rose-700 transition-all shadow-sm"
+                    >
                         Enregistrer
                     </button>
                 </div>

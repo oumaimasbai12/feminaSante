@@ -12,7 +12,7 @@ const suggestions = [
 ];
 
 export default function Chat() {
-    const [messages, setMessages] = useState([{ role: 'assistant', content: 'Hello! 🌸 I\'m your FeminaSante AI health assistant. I\'m here to help you with questions about women\'s health, menstrual cycles, pregnancy, and more. What would you like to know today?', time: new Date() }]);
+    const [messages, setMessages] = useState([{ role: 'assistant', content: 'Bonjour ! 🌸 Je suis Femina, votre assistante de santé féminine. Je suis là pour vous aider avec vos questions sur la santé des femmes, les cycles menstruels, la grossesse et bien plus. Comment puis-je vous aider aujourd\'hui ?', time: new Date() }]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
     const endRef = useRef(null);
@@ -29,15 +29,15 @@ export default function Chat() {
         setLoading(true);
         try {
             const r = await window.axios.post('/api/v1/chats', { message: text });
-            setMessages(prev => [...prev, { role: 'assistant', content: r.data.chat?.response || r.data.response || r.data.message || 'I received your message!', time: new Date() }]);
+            setMessages(prev => [...prev, { role: 'assistant', content: r.data.chat?.response || r.data.response || r.data.message || 'J\'ai reçu votre message !', time: new Date() }]);
         } catch (e) {
-            setMessages(prev => [...prev, { role: 'assistant', content: 'I\'m having trouble connecting right now. Please try again in a moment. 🌸', time: new Date() }]);
+            setMessages(prev => [...prev, { role: 'assistant', content: 'Je rencontre des difficultés à me connecter pour le moment. Veuillez réessayer dans un instant. 🌸', time: new Date() }]);
         }
         setLoading(false);
         inputRef.current?.focus();
     };
 
-    const fmt = (d) => d.toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit' });
+    const fmt = (d) => d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 
     return (
         <AppLayout title='Assistant Sante IA'>

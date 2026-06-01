@@ -137,8 +137,8 @@ class WikipediaArticleSeeder extends Seeder
             if ($sectionsRes->successful()) {
                 $data = $sectionsRes->json();
                 $allSections = $data['remaining']['sections'] ?? [];
-                // Take first 4 sections max
-                foreach (array_slice($allSections, 0, 4) as $section) {
+                // Take first 8 sections instead of 4
+                foreach (array_slice($allSections, 0, 8) as $section) {
                     if (!empty($section['line']) && !empty($section['text'])) {
                         $sections[] = [
                             'title' => strip_tags($section['line']),
@@ -166,20 +166,20 @@ class WikipediaArticleSeeder extends Seeder
 
         // Intro
         if ($data['excerpt']) {
-            $html .= "<p class=\"lead\">{$data['excerpt']}</p>\n\n";
+            $html .= "<p class=\"mb-4\">{$data['excerpt']}</p>\n\n";
         }
 
         // Sections
         foreach ($data['sections'] as $section) {
-            $html .= "<h2>{$section['title']}</h2>\n";
-            $html .= "<p>{$section['text']}</p>\n\n";
+            $html .= "<h2 class=\"text-2xl font-bold text-slate-900 mt-6 mb-3\">{$section['title']}</h2>\n";
+            $html .= "<p class=\"mb-4 text-slate-700 leading-relaxed\">{$section['text']}</p>\n\n";
         }
 
         // Medical disclaimer
-        $html .= "<div class=\"disclaimer bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-6\">";
-        $html .= "<p><strong>⚠️ Information médicale</strong> : Cet article est fourni à titre éducatif uniquement. ";
+        $html .= "<div class=\"bg-amber-50 border border-amber-200 rounded-2xl p-6 mt-6\">";
+        $html .= "<p class=\"text-amber-800\"><strong>⚠️ Information médicale</strong> : Cet article est fourni à titre éducatif uniquement. ";
         $html .= "Il ne remplace pas l'avis d'un professionnel de santé. ";
-        $html .= "Source : <a href=\"{$data['source']}\" target=\"_blank\">Wikipédia</a>.</p>";
+        $html .= "Source : <a href=\"{$data['source']}\" target=\"_blank\" class=\"text-amber-700 underline\">Wikipédia</a>.</p>";
         $html .= "</div>";
 
         return $html;
@@ -193,9 +193,17 @@ class WikipediaArticleSeeder extends Seeder
         $html = preg_replace('/<\/?span[^>]*>/i', '', $html);
         $html = preg_replace('/<figure[^>]*>.*?<\/figure>/is', '', $html);
         $html = preg_replace('/\[\d+\]/', '', $html);
-        $html = strip_tags($html, '<p><ul><li><b><strong><em><h3>');
-        $html = preg_replace('/\s+/', ' ', $html);
-        return trim(Str::limit($html, 1500));
+        $html = strip_tags($html, '<p><ul><li><b><strong><em><h3><ol>');
+        // Increase limit from 1500 to 5000
+        $html = trim(Str::limit($html, 5000));
+        
+        // Ensure there are paragraphs
+        $html = str_replace("\n\n", "</p><p>", $html);
+        if (substr($html, 0, 2) !== "<p") {
+            $html = "<p>" . $html . "</p>";
+        }
+        
+        return $html;
     }
 
     private function generateTags(string $title, string $category): array

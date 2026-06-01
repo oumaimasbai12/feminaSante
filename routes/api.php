@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\Articles\ArticleCategoryController;
 use App\Http\Controllers\Api\Articles\ArticleCommentController;
 use App\Http\Controllers\Api\Articles\ArticleController;
+use App\Http\Controllers\Api\Articles\ArticleLikeController;
 use App\Http\Controllers\Api\Auth\LoginController;
 use App\Http\Controllers\Api\Auth\ProfileController;
 use App\Http\Controllers\Api\Auth\RegisterController;
@@ -65,6 +66,8 @@ Route::prefix('v1')->group(function () {
         Route::post('/articles', [ArticleController::class, 'store']);
         Route::post('/article-categories', [ArticleCategoryController::class, 'store']);
         Route::post('/articles/{article}/comments', [ArticleCommentController::class, 'store']);
+        Route::post('/articles/{article}/like', [ArticleLikeController::class, 'toggle']);
+        Route::post('/articles/{article}/share', [ArticleLikeController::class, 'share']);
 
         // Quizzes — write only (reads are public above)
         Route::post('/quizzes', [QuizController::class, 'store']);
