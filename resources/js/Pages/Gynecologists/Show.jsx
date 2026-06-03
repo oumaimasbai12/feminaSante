@@ -191,13 +191,6 @@ export default function GynecologistShow() {
                             <p className="text-sm text-brand-muted mt-3 leading-relaxed">{doc.bio}</p>
                         )}
                     </div>
-                    <button
-                        type="button"
-                        onClick={() => setTab('reserver')}
-                        className="btn-primary shrink-0 w-full sm:w-auto"
-                    >
-                        Prendre RDV
-                    </button>
                 </div>
             </GlassCard>
 
