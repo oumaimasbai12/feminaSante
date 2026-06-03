@@ -53,19 +53,7 @@ export default function PregnancyDashboard({ pregnancyId, currentWeek, progress,
             link.click();
             URL.revokeObjectURL(url);
         } catch (e) {
-            let message = 'Erreur lors de l\'export PDF.';
-            const data = e.response?.data;
-            if (data instanceof Blob) {
-                try {
-                    const parsed = JSON.parse(await data.text());
-                    if (parsed?.message) message = parsed.message;
-                } catch {
-                    /* not JSON */
-                }
-            } else if (data?.message) {
-                message = data.message;
-            }
-            setExportError(message);
+            setExportError(e.response?.data?.message || 'Erreur lors de l\'export PDF.');
         }
         setExporting(false);
     };

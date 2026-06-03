@@ -1,8 +1,42 @@
 import React, { useState } from 'react';
-import { CheckCircle2, BookOpen } from 'lucide-react';
+import {
+    CheckCircle2,
+    BookOpen,
+    ThermometerSun,
+    Droplets,
+    Heart,
+    Moon,
+    Brain,
+    Activity,
+    Calendar,
+    BatteryLow,
+    Scale,
+    Sun,
+    CircleAlert,
+} from 'lucide-react';
 import GlassCard from '@/Components/UI/GlassCard';
+import ToggleOption from '@/Components/UI/ToggleOption';
 
 const api = () => window.axios;
+
+const SYMPTOM_META = {
+    hot_flashes: { icon: ThermometerSun, hint: 'Vagues de chaleur soudaines' },
+    night_sweats: { icon: Droplets, hint: 'Transpiration la nuit' },
+    mood_changes: { icon: Heart, hint: 'Irritabilité ou variations d\'humeur' },
+    sleep_changes: { icon: Moon, hint: 'Sommeil perturbé ou réveils fréquents' },
+    fatigue: { icon: BatteryLow, hint: 'Épuisement ou manque d\'énergie' },
+    brain_fog: { icon: Brain, hint: 'Difficultés de concentration' },
+    joint_pain: { icon: Activity, hint: 'Raideur ou douleurs articulaires' },
+    headaches: { icon: CircleAlert, hint: 'Céphalées ou migraines' },
+    weight_gain: { icon: Scale, hint: 'Prise de poids récente' },
+    dry_skin: { icon: Sun, hint: 'Peau sèche ou qui gratte' },
+    libido_changes: { icon: Heart, hint: 'Changement de libido' },
+    cycle_irregularity: { icon: Calendar, hint: 'Cycles plus courts, longs ou imprévisibles' },
+};
+
+function getSymptomMeta(symptom) {
+    return SYMPTOM_META[symptom.slug] || { icon: Activity, hint: null };
+}
 
 export default function SymptomLogger({ menopauseId, symptomCatalog = [], onSave }) {
     const [saving, setSaving] = useState(false);
@@ -137,26 +171,44 @@ export default function SymptomLogger({ menopauseId, symptomCatalog = [], onSave
                 </div>
 
                 {symptomCatalog.length > 0 && (
-                    <div className="space-y-3 bg-brand-bg/60 p-5 rounded-2xl border border-brand-border">
-                        <p className="text-sm font-semibold text-brand-ink">Symptômes du jour (catalogue) :</p>
-                        <div className="grid grid-cols-2 gap-2">
-                            {symptomCatalog.map(symptom => (
-                                <label key={symptom.id} className="flex items-center space-x-2 bg-white p-2 rounded-xl border border-brand-border cursor-pointer hover:border-brand-primary/40 text-sm">
-                                    <input
-                                        type="checkbox"
-                                        checked={formData.selectedSymptoms.some(s => s.symptom_id === symptom.id)}
-                                        onChange={() => toggleCatalogSymptom(symptom.id)}
-                                        className="rounded text-brand-primary focus:ring-brand-primary/30"
-                                    />
-                                    <span className="text-brand-ink">{symptom.name_fr}</span>
-                                </label>
-                            ))}
+                    <div className="space-y-4 bg-brand-bg/60 p-5 sm:p-6 rounded-2xl border border-brand-border">
+                        <div>
+                            <p className="text-sm font-semibold text-brand-ink">Symptômes du jour</p>
+                            <p className="text-xs text-brand-muted mt-1">
+                                Sélectionnez tout ce que vous ressentez aujourd&apos;hui — cela alimente vos graphiques.
+                            </p>
                         </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {symptomCatalog.map((symptom) => {
+                                const { icon, hint } = getSymptomMeta(symptom);
+                                const active = formData.selectedSymptoms.some((s) => s.symptom_id === symptom.id);
+
+                                return (
+                                    <ToggleOption
+                                        key={symptom.id}
+                                        active={active}
+                                        onClick={() => toggleCatalogSymptom(symptom.id)}
+                                        icon={icon}
+                                        label={symptom.name_fr}
+                                        hint={hint}
+                                    />
+                                );
+                            })}
+                        </div>
+                        {formData.selectedSymptoms.length > 0 && (
+                            <p className="text-xs text-brand-primary font-medium">
+                                {formData.selectedSymptoms.length}{' '}
+                                {formData.selectedSymptoms.length > 1 ? 'symptômes sélectionnés' : 'symptôme sélectionné'}
+                            </p>
+                        )}
                     </div>
                 )}
 
-                <div className="space-y-3 bg-brand-bg/60 p-5 rounded-2xl border border-brand-border">
-                    <p className="text-sm font-semibold text-brand-ink">Facteurs de mode de vie :</p>
+                <div className="space-y-4 bg-brand-bg/60 p-5 sm:p-6 rounded-2xl border border-brand-border">
+                    <div>
+                        <p className="text-sm font-semibold text-brand-ink">Facteurs de mode de vie</p>
+                        <p className="text-xs text-brand-muted mt-1">Évaluez votre journée sur une échelle de 1 à 10.</p>
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <SliderField label="Niveau de stress" value={formData.stress_level} onChange={v => setFormData({ ...formData, stress_level: v })} min={1} max={10} low="Faible" high="Élevé" />
                         <SliderField label="Qualité du sommeil" value={formData.sleep_quality} onChange={v => setFormData({ ...formData, sleep_quality: v })} min={1} max={10} low="Mauvais" high="Excellent" />

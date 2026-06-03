@@ -8,7 +8,6 @@ use App\Services\PregnancyService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Throwable;
 
 class PregnancyDashboardController extends Controller
 {
@@ -28,7 +27,7 @@ class PregnancyDashboardController extends Controller
         ]);
     }
 
-    public function export(Request $request, Pregnancy $pregnancy): Response|JsonResponse
+    public function export(Request $request, Pregnancy $pregnancy): Response
     {
         if ($pregnancy->user_id !== $request->user()->id) {
             return response()->json(['message' => 'Unauthorized.'], 403);
@@ -36,18 +35,8 @@ class PregnancyDashboardController extends Controller
 
         $filename = 'femina-grossesse-'.$pregnancy->id.'.pdf';
 
-        try {
-            return $this->pregnancyService
-                ->generateMedicalExportPdf($pregnancy)
-                ->download($filename);
-        } catch (\InvalidArgumentException $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
-        } catch (Throwable $e) {
-            report($e);
-
-            return response()->json([
-                'message' => 'Impossible de générer le PDF. Assurez-vous que les migrations sont à jour (`php artisan migrate`), puis réessayez.',
-            ], 500);
-        }
+        return $this->pregnancyService
+            ->generateMedicalExportPdf($pregnancy)
+            ->download($filename);
     }
 }

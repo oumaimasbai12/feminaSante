@@ -122,7 +122,7 @@
 
     <h2>Suivi de grossesse</h2>
     <table>
-        <tr><th>Date des dernières règles</th><td>{{ $export['pregnancy']['start_date'] ? \Carbon\Carbon::parse($export['pregnancy']['start_date'])->format('d/m/Y') : '—' }}</td></tr>
+        <tr><th>Date des dernières règles</th><td>{{ \Carbon\Carbon::parse($export['pregnancy']['start_date'])->format('d/m/Y') }}</td></tr>
         <tr><th>Date d'accouchement prévue</th><td>{{ $export['pregnancy']['due_date'] ? \Carbon\Carbon::parse($export['pregnancy']['due_date'])->format('d/m/Y') : '—' }}</td></tr>
         <tr><th>Semaine actuelle</th><td>Semaine {{ $export['pregnancy']['current_week'] }} / 40</td></tr>
         <tr><th>Type de grossesse</th><td>
@@ -166,7 +166,7 @@
                     <tr>
                         <td>S{{ $milestone->week }}</td>
                         <td>{{ $milestone->title }}<br><span class="muted">{{ $milestone->description }}</span></td>
-                        <td>{{ $milestone->scheduled_date?->format('d/m/Y') ?? '—' }}</td>
+                        <td>{{ $milestone->scheduled_date->format('d/m/Y') }}</td>
                         <td>
                             @if($milestone->status === 'completed')<span class="badge badge-done">Fait</span>
                             @elseif($milestone->status === 'skipped')<span class="badge badge-skipped">Ignoré</span>
@@ -189,7 +189,7 @@
             <tbody>
                 @foreach($export['checkups'] as $checkup)
                     <tr>
-                        <td>{{ $checkup->checkup_date?->format('d/m/Y') ?? '—' }}</td>
+                        <td>{{ $checkup->checkup_date->format('d/m/Y') }}</td>
                         <td>S{{ $checkup->week }}</td>
                         <td>{{ $checkup->checkup_type }}</td>
                         <td>{{ $checkup->weight ? $checkup->weight.' kg' : '—' }}</td>
@@ -211,7 +211,7 @@
             <tbody>
                 @foreach($export['weight_gains'] as $entry)
                     <tr>
-                        <td>{{ $entry->date?->format('d/m/Y') ?? '—' }}</td>
+                        <td>{{ $entry->date->format('d/m/Y') }}</td>
                         <td>S{{ $entry->week }}</td>
                         <td>{{ $entry->weight }}</td>
                         <td>{{ $entry->notes ?? '—' }}</td>
@@ -232,9 +232,9 @@
             <tbody>
                 @foreach($export['kick_counters']->take(10) as $kick)
                     <tr>
-                        <td>{{ $kick->date?->format('d/m/Y') ?? '—' }}</td>
-                        <td>{{ $kick->kicks_count ?? '—' }}</td>
-                        <td>{{ $kick->start_time ? \Illuminate\Support\Str::of($kick->start_time)->substr(0, 5) : '?' }} - {{ $kick->end_time ? \Illuminate\Support\Str::of($kick->end_time)->substr(0, 5) : '?' }}</td>
+                        <td>{{ $kick->date->format('d/m/Y') }}</td>
+                        <td>{{ $kick->kicks_count }}</td>
+                        <td>{{ $kick->start_time }} - {{ $kick->end_time ?? '?' }}</td>
                         <td>{{ $kick->activity_level ?? '—' }}</td>
                     </tr>
                 @endforeach
@@ -253,7 +253,7 @@
             <tbody>
                 @foreach($export['contractions']->take(10) as $contraction)
                     <tr>
-                        <td>{{ $contraction->start_time?->format('d/m/Y H:i') ?? '—' }}</td>
+                        <td>{{ $contraction->start_time->format('d/m/Y H:i') }}</td>
                         <td>{{ $contraction->duration_seconds ?? '—' }}</td>
                         <td>{{ $contraction->interval_seconds ?? '—' }}</td>
                         <td>{{ $contraction->intensity ?? '—' }}</td>
@@ -274,9 +274,9 @@
             <tbody>
                 @foreach($export['symptoms']->take(20) as $symptom)
                     <tr>
-                        <td>{{ $symptom->recorded_at?->format('d/m/Y H:i') ?? '—' }}</td>
-                        <td>{{ $symptom->name ?? '—' }}</td>
-                        <td>{{ $symptom->intensity ? ucfirst($symptom->intensity) : '—' }}</td>
+                        <td>{{ $symptom->recorded_at->format('d/m/Y H:i') }}</td>
+                        <td>{{ $symptom->name }}</td>
+                        <td>{{ ucfirst($symptom->intensity) }}</td>
                         <td>{{ $symptom->notes ?? '—' }}</td>
                     </tr>
                 @endforeach
@@ -287,7 +287,7 @@
     @endif
 
     <div class="disclaimer">
-        Attention : {{ $export['disclaimer'] }}
+        ⚠️ {{ $export['disclaimer'] }}
     </div>
 </body>
 </html>
