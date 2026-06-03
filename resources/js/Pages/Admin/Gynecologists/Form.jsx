@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import AdminLayout from '@/Components/Layouts/AdminLayout';
 import GlassCard from '@/Components/UI/GlassCard';
@@ -17,6 +17,7 @@ import {
     CheckCircle2,
     Info,
 } from 'lucide-react';
+import { MOROCCAN_CITIES } from '@/data/moroccanCities';
 
 const SPECIALITIES = [
     'Gynécologie-Obstétrique',
@@ -64,6 +65,27 @@ function Field({ label, value, onChange, type = 'text', required = false, placeh
     );
 }
 
+function SelectField({ label, value, onChange, required = false, options = [], placeholder = 'Sélectionner une ville…' }) {
+    return (
+        <div>
+            <label className="block text-sm font-semibold text-brand-ink mb-1.5">{label}</label>
+            <select
+                required={required}
+                value={value}
+                onChange={onChange}
+                className="input-field py-2.5"
+            >
+                <option value="">{placeholder}</option>
+                {options.map((option) => (
+                    <option key={option} value={option}>
+                        {option}
+                    </option>
+                ))}
+            </select>
+        </div>
+    );
+}
+
 function FormSkeleton() {
     return (
         <div className="w-full grid lg:grid-cols-2 gap-4 animate-pulse">
@@ -99,6 +121,13 @@ export default function GynecologistForm() {
     const [msg, setMsg] = useState(null);
     const [deleteOpen, setDeleteOpen] = useState(false);
     const [deleting, setDeleting] = useState(false);
+
+    const cityOptions = useMemo(() => {
+        if (form.city && !MOROCCAN_CITIES.includes(form.city)) {
+            return [form.city, ...MOROCCAN_CITIES];
+        }
+        return MOROCCAN_CITIES;
+    }, [form.city]);
 
     useEffect(() => {
         if (!isEdit || !id) return;
@@ -328,7 +357,13 @@ export default function GynecologistForm() {
                                     required
                                 />
                                 <Field label="Téléphone" value={form.phone} onChange={set('phone')} />
-                                <Field label="Ville" value={form.city} onChange={set('city')} required />
+                                <SelectField
+                                    label="Ville"
+                                    value={form.city}
+                                    onChange={set('city')}
+                                    options={cityOptions}
+                                    required
+                                />
                             </GlassCard>
 
                             <GlassCard className="p-6 space-y-4">

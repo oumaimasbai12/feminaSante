@@ -6,7 +6,7 @@ import {
 } from '@/Components/UI/DataTable';
 import { TableActionGroup, TableActionLink, TableActionButton } from '@/Components/UI/TableActions';
 import { Head, Link } from '@inertiajs/react';
-import { Search, Eye, Trash2 } from 'lucide-react';
+import { Search, Eye, Trash2, CheckCircle2, AlertTriangle } from 'lucide-react';
 
 export default function Index() {
     const params = new URLSearchParams(window.location.search);
@@ -40,6 +40,12 @@ export default function Index() {
 
     useEffect(load, [load]);
 
+    useEffect(() => {
+        if (!toast) return undefined;
+        const timer = setTimeout(() => setToast(null), 5000);
+        return () => clearTimeout(timer);
+    }, [toast]);
+
     const applyFilters = (e) => {
         e?.preventDefault();
         setPage(1);
@@ -51,14 +57,16 @@ export default function Index() {
         setDeleting(true);
         try {
             await window.axios.delete(`/api/v1/admin/users/${deleteTarget.id}`);
-            setToast(`Profil de ${deleteTarget.nom} supprimé.`);
+            setToast({ type: 'success', message: `Profil de ${deleteTarget.nom} supprimé.` });
             setDeleteTarget(null);
             load();
         } catch (e) {
-            setToast(e.response?.data?.message || 'Erreur lors de la suppression.');
+            setToast({
+                type: 'error',
+                message: e.response?.data?.message || 'Erreur lors de la suppression.',
+            });
         } finally {
             setDeleting(false);
-            setTimeout(() => setToast(null), 4000);
         }
     };
 
@@ -76,7 +84,28 @@ export default function Index() {
                 onCancel={() => setDeleteTarget(null)}
             />
             {toast && (
-                <div className="mb-4 p-4 rounded-xl bg-brand-ink text-white text-sm font-medium">{toast}</div>
+                <div
+                    className={`mb-4 p-4 rounded-xl text-sm font-medium border flex items-center gap-3 ${
+                        toast.type === 'success'
+                            ? 'bg-emerald-50/80 border-emerald-200 text-emerald-800'
+                            : 'bg-red-50/80 border-red-200 text-red-800'
+                    }`}
+                    role="status"
+                >
+                    {toast.type === 'success' ? (
+                        <CheckCircle2 size={18} className="shrink-0" />
+                    ) : (
+                        <AlertTriangle size={18} className="shrink-0" />
+                    )}
+                    <span className="flex-1">{toast.message}</span>
+                    <button
+                        type="button"
+                        onClick={() => setToast(null)}
+                        className="text-xs font-semibold opacity-70 hover:opacity-100 shrink-0"
+                    >
+                        Fermer
+                    </button>
+                </div>
             )}
 
             <DataTable>

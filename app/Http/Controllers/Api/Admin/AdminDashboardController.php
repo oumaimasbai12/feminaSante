@@ -33,6 +33,7 @@ class AdminDashboardController extends Controller
 
         $recent_users = User::select('id', 'nom', 'email', 'created_at', 'is_admin', 'is_gynecologist')
             ->where('is_admin', false)
+            ->where('is_gynecologist', false)
             ->orderByDesc('created_at')
             ->limit(5)
             ->get()
@@ -41,7 +42,7 @@ class AdminDashboardController extends Controller
                 'nom' => $u->nom,
                 'email' => $u->email,
                 'created_at' => $u->created_at,
-                'role' => $this->resolveRole($u),
+                'role' => 'patient',
             ]);
 
         $recent_appointments = Appointment::with(['user:id,nom', 'gynecologist:id,first_name,last_name'])
@@ -85,17 +86,5 @@ class AdminDashboardController extends Controller
                 'charts' => $charts,
             ],
         ]);
-    }
-
-    private function resolveRole(User $user): string
-    {
-        if ($user->is_admin) {
-            return 'admin';
-        }
-        if ($user->is_gynecologist) {
-            return 'gynecologist';
-        }
-
-        return 'patient';
     }
 }

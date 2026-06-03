@@ -49,4 +49,20 @@ class AdminDashboardControllerTest extends TestCase
                 ],
             ]);
     }
+
+    public function test_recent_users_excludes_gynecologists_and_admins(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $patient = User::factory()->create(['nom' => 'Patiente Test', 'is_gynecologist' => false]);
+        User::factory()->create(['nom' => 'Dr Gyn', 'is_gynecologist' => true]);
+
+        $response = $this->actingAs($admin)->getJson('/api/v1/admin/dashboard');
+
+        $response->assertOk();
+        $names = collect($response->json('data.recent_users'))->pluck('nom')->all();
+
+        $this->assertContains('Patiente Test', $names);
+        $this->assertNotContains('Dr Gyn', $names);
+        $this->assertNotContains($admin->nom, $names);
+    }
 }
