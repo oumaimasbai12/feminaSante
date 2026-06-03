@@ -6,6 +6,7 @@ use Database\Factories\GynecologistFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Gynecologist extends Model
@@ -62,9 +63,52 @@ class Gynecologist extends Model
         return $this->hasMany(Appointment::class);
     }
 
+    public function clinicalNotes(): HasMany
+    {
+        return $this->hasMany(ClinicalNote::class);
+    }
+
+    public function patientPriorities(): HasMany
+    {
+        return $this->hasMany(GynecologistPatientPriority::class);
+    }
+
     public function user(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(\App\Models\User::class);
+    }
+
+    public function scopeActive(Builder $query): Builder
+    {
+        return $query->where('is_active', true);
+    }
+
+    public function syncActiveFromAvailabilities(): void
+    {
+        $hasFutureAvailability = $this->availabilities()
+            ->where('is_available', true)
+            ->whereDate('date', '>=', now()->toDateString())
+            ->exists();
+
+        $this->update(['is_active' => $hasFutureAvailability]);
+    }
+
+    public function scopeByCity(Builder $query, ?string $city): Builder
+    {
+        if (! $city) {
+            return $query;
+        }
+
+        return $query->where('city', 'like', '%'.$city.'%');
+    }
+
+    public function scopeBySpeciality(Builder $query, ?string $speciality): Builder
+    {
+        if (! $speciality) {
+            return $query;
+        }
+
+        return $query->where('speciality', 'like', '%'.$speciality.'%');
     }
 
     protected static function newFactory(): Factory

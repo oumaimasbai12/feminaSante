@@ -274,6 +274,23 @@ class PregnancyTest extends TestCase
         ]);
     }
 
+    public function test_kick_counter_allows_same_minute_end_time(): void
+    {
+        $pregnancy = Pregnancy::factory()->create(['user_id' => $this->user->id]);
+
+        $response = $this->withToken($this->token)
+            ->postJson("/api/v1/pregnancies/{$pregnancy->id}/kicks", [
+                'date' => '2026-03-15',
+                'start_time' => '10:00',
+                'end_time' => '10:00',
+                'kicks_count' => 3,
+                'activity_level' => 'low',
+            ]);
+
+        $response->assertCreated();
+        $response->assertJsonPath('kick_counter.kicks_count', 3);
+    }
+
     public function test_kick_counter_defaults_kicks_count_to_zero(): void
     {
         $pregnancy = Pregnancy::factory()->create(['user_id' => $this->user->id]);
@@ -433,6 +450,26 @@ class PregnancyTest extends TestCase
         ]);
     }
 
+    public function test_user_can_create_weight_gain_at_100_kg(): void
+    {
+        $pregnancy = Pregnancy::factory()->create(['user_id' => $this->user->id]);
+
+        $response = $this->withToken($this->token)
+            ->postJson("/api/v1/pregnancies/{$pregnancy->id}/weight-gains", [
+                'date' => '2026-03-15',
+                'week' => 1,
+                'weight' => 100,
+            ]);
+
+        $response->assertCreated();
+        $response->assertJsonPath('weight_gain.weight', '100.00');
+
+        $this->assertDatabaseHas('weight_gains', [
+            'pregnancy_id' => $pregnancy->id,
+            'weight' => 100,
+        ]);
+    }
+
     public function test_create_weight_gain_fails_without_required_fields(): void
     {
         $pregnancy = Pregnancy::factory()->create(['user_id' => $this->user->id]);
@@ -457,6 +494,79 @@ class PregnancyTest extends TestCase
             ]);
 
         $response->assertForbidden();
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // PREGNANCY SYMPTOMS
+    // ──────────────────────────────────────────────────────────────
+
+    public function test_user_can_create_pregnancy_symptom(): void
+    {
+        $pregnancy = Pregnancy::factory()->create(['user_id' => $this->user->id]);
+
+        $response = $this->withToken($this->token)
+            ->postJson("/api/v1/pregnancies/{$pregnancy->id}/symptoms", [
+                'name' => 'Nausées',
+                'intensity' => 'modéré',
+                'notes' => 'Le matin',
+            ]);
+
+        $response->assertCreated();
+        $response->assertJsonFragment(['message' => 'Pregnancy symptom logged successfully.']);
+        $response->assertJsonPath('symptom.name', 'Nausées');
+
+        $this->assertDatabaseHas('pregnancy_symptoms', [
+            'pregnancy_id' => $pregnancy->id,
+            'name' => 'Nausées',
+            'intensity' => 'modéré',
+        ]);
+    }
+
+    public function test_user_can_list_pregnancy_symptoms(): void
+    {
+        $pregnancy = Pregnancy::factory()->create(['user_id' => $this->user->id]);
+        $pregnancy->symptoms()->create([
+            'name' => 'Fatigue',
+            'intensity' => 'faible',
+            'recorded_at' => now(),
+        ]);
+
+        $response = $this->withToken($this->token)
+            ->getJson("/api/v1/pregnancies/{$pregnancy->id}/symptoms");
+
+        $response->assertOk();
+        $response->assertJsonCount(1);
+        $response->assertJsonPath('0.name', 'Fatigue');
+    }
+
+    public function test_user_can_delete_pregnancy_symptom(): void
+    {
+        $pregnancy = Pregnancy::factory()->create(['user_id' => $this->user->id]);
+        $symptom = $pregnancy->symptoms()->create([
+            'name' => 'Crampes',
+            'intensity' => 'élevé',
+            'recorded_at' => now(),
+        ]);
+
+        $response = $this->withToken($this->token)
+            ->deleteJson("/api/v1/pregnancy-symptoms/{$symptom->id}");
+
+        $response->assertOk();
+        $this->assertDatabaseMissing('pregnancy_symptoms', ['id' => $symptom->id]);
+    }
+
+    public function test_create_pregnancy_symptom_fails_with_invalid_name(): void
+    {
+        $pregnancy = Pregnancy::factory()->create(['user_id' => $this->user->id]);
+
+        $response = $this->withToken($this->token)
+            ->postJson("/api/v1/pregnancies/{$pregnancy->id}/symptoms", [
+                'name' => 'Symptôme inconnu',
+                'intensity' => 'faible',
+            ]);
+
+        $response->assertUnprocessable();
+        $response->assertJsonValidationErrors(['name']);
     }
 
     // ──────────────────────────────────────────────────────────────

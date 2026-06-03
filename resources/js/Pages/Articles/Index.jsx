@@ -1,11 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from '@inertiajs/react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Head, Link } from '@inertiajs/react';
 import AppLayout from '../../Layouts/AppLayout';
-import { Search, BookOpen, Heart, Eye, Clock, Tag, ArrowRight, Share2 } from 'lucide-react';
+import GlassCard from '@/Components/UI/GlassCard';
+import StatTile from '@/Components/UI/StatTile';
+import { Search, BookOpen, ArrowRight, Tag, Sparkles } from 'lucide-react';
 
-const cats = ['Tous', 'Cycle menstruel', 'Grossesse', 'Ménopause', 'Santé sexuelle', 'Nutrition', 'Bien-être mental'];
+const getCategoryName = (article) =>
+    article?.category?.nom || article?.category?.name || article?.category || 'Santé';
 
-const getCategoryName = (article) => article?.category?.nom || article?.category || 'Santé';
+function ArticleThumb({ large = false }) {
+    return (
+        <div
+            className={`flex items-center justify-center bg-brand-bg border border-brand-border shrink-0 ${
+                large ? 'w-full md:w-2/5 h-40 rounded-2xl' : 'w-full h-28 rounded-xl mb-4'
+            }`}
+        >
+            <BookOpen size={large ? 40 : 28} className="text-brand-primary/35" />
+        </div>
+    );
+}
 
 export default function Articles() {
     const [articles, setArticles] = useState([]);
@@ -14,43 +27,111 @@ export default function Articles() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        window.axios.get('/api/v1/articles').then(r => {
-            const data = Array.isArray(r.data) ? r.data : (r.data.data || []);
-            setArticles(data);
-        }).catch(() => { }).finally(() => setLoading(false));
+        window.axios
+            .get('/api/v1/articles')
+            .then((r) => {
+                const data = Array.isArray(r.data) ? r.data : r.data.data || [];
+                setArticles(data);
+            })
+            .catch(() => setArticles([]))
+            .finally(() => setLoading(false));
     }, []);
 
-    const filtered = articles.filter(a => {
-        const q = query.toLowerCase();
-        const matchQ = !q || a.title?.toLowerCase().includes(q) || a.excerpt?.toLowerCase().includes(q);
-        const matchC = cat === 'Tous' || getCategoryName(a) === cat;
-        return matchQ && matchC;
-    });
+    const published = useMemo(
+        () => articles.filter((a) => !a.status || a.status === 'published'),
+        [articles],
+    );
 
-    const featured = filtered[0];
-    const rest = filtered.slice(1);
+    const categories = useMemo(() => {
+        const names = [...new Set(published.map(getCategoryName).filter(Boolean))];
+        return ['Tous', ...names.sort((a, b) => a.localeCompare(b, 'fr'))];
+    }, [published]);
+
+    const filtered = useMemo(() => {
+        const q = query.toLowerCase().trim();
+        return published.filter((a) => {
+            const matchQ =
+                !q ||
+                a.title?.toLowerCase().includes(q) ||
+                a.excerpt?.toLowerCase().includes(q) ||
+                getCategoryName(a).toLowerCase().includes(q);
+            const matchC = cat === 'Tous' || getCategoryName(a) === cat;
+            return matchQ && matchC;
+        });
+    }, [published, query, cat]);
+
+    const featured = useMemo(() => {
+        const fromFiltered = filtered.find((a) => a.is_featured);
+        if (fromFiltered) return fromFiltered;
+        if (cat !== 'Tous' || query.trim()) return filtered[0] || null;
+        return published.find((a) => a.is_featured) || filtered[0] || null;
+    }, [filtered, published, cat, query]);
+
+    const rest = useMemo(
+        () => filtered.filter((a) => a.id !== featured?.id),
+        [filtered, featured],
+    );
+
+    const formatDate = (iso) => {
+        if (!iso) return null;
+        return new Date(iso).toLocaleDateString('fr-FR', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+        });
+    };
 
     return (
-        <AppLayout title='Articles de santé'>
-            <div className='mb-6 space-y-4'>
-                <div className='relative max-w-lg'>
-                    <Search size={18} className='absolute left-4 top-1/2 -translate-y-1/2 text-slate-400' />
-                    <input 
-                        value={query} 
-                        onChange={e => setQuery(e.target.value)} 
-                        placeholder='Rechercher des articles...' 
-                        className='w-full rounded-xl border border-slate-200 bg-white px-4 py-3 pl-11 text-sm text-slate-900 focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none transition-all' 
+        <AppLayout title="Articles de santé">
+            <Head title="Articles de santé - FeminaSante" />
+
+            <p className="text-brand-muted text-sm mb-6">
+                Conseils et informations rédigés par des professionnels de santé — cycle, grossesse,
+                ménopause et bien-être.
+            </p>
+
+            {!loading && published.length > 0 && (
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <StatTile label="Articles" value={published.length} sub="publiés" icon={BookOpen} />
+                    <StatTile label="Catégories" value={categories.length - 1} sub="thématiques" icon={Tag} />
+                    <StatTile
+                        label="Résultats"
+                        value={filtered.length}
+                        sub={query || cat !== 'Tous' ? 'filtre actif' : 'affichés'}
+                        icon={Search}
+                    />
+                    <StatTile
+                        label="À la une"
+                        value={published.some((a) => a.is_featured) ? '1' : '—'}
+                        sub="article vedette"
+                        icon={Sparkles}
                     />
                 </div>
-                <div className='flex gap-2 overflow-x-auto pb-1'>
-                    {cats.map(c => (
-                        <button 
-                            key={c} 
-                            onClick={() => setCat(c)} 
-                            className={`px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all ${
-                                cat === c 
-                                    ? 'bg-gradient-to-r from-rose-500 to-rose-600 text-white shadow-sm' 
-                                    : 'bg-white border border-slate-200 text-slate-600 hover:border-rose-300 hover:text-rose-700'
+            )}
+
+            <div className="mb-6 space-y-4">
+                <div className="relative w-full">
+                    <Search
+                        size={18}
+                        className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-muted pointer-events-none"
+                    />
+                    <input
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        placeholder="Rechercher par titre, résumé ou catégorie…"
+                        className="input-field pl-11 w-full"
+                    />
+                </div>
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                    {categories.map((c) => (
+                        <button
+                            key={c}
+                            type="button"
+                            onClick={() => setCat(c)}
+                            className={`px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all duration-300 border ${
+                                cat === c
+                                    ? 'bg-brand-soft text-brand-primary border-brand-primary/25'
+                                    : 'glass-card text-brand-muted border-transparent hover:text-brand-primary hover:border-brand-primary/20'
                             }`}
                         >
                             {c}
@@ -60,48 +141,75 @@ export default function Articles() {
             </div>
 
             {loading && (
-                <div className='grid md:grid-cols-2 lg:grid-cols-3 gap-4'>
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {[...Array(6)].map((_, i) => (
-                        <div key={i} className='bg-white rounded-2xl border border-slate-200 shadow-sm p-6'>
-                            <div className='w-3/4 h-4 bg-slate-100 rounded mb-3'></div>
-                            <div className='h-3 bg-slate-100 rounded mb-2'></div>
-                            <div className='h-3 bg-slate-100 rounded w-5/6'></div>
-                        </div>
+                        <GlassCard key={i} className="p-6 animate-pulse">
+                            <div className="w-full h-28 bg-brand-bg rounded-xl mb-4" />
+                            <div className="w-3/4 h-4 bg-brand-bg rounded mb-3" />
+                            <div className="h-3 bg-brand-bg rounded mb-2" />
+                            <div className="h-3 bg-brand-bg rounded w-5/6" />
+                        </GlassCard>
                     ))}
                 </div>
             )}
 
             {!loading && filtered.length === 0 && (
-                <div className='text-center py-16 bg-white rounded-2xl border border-slate-200 shadow-sm'>
-                    <BookOpen size={48} className='text-rose-200 mx-auto mb-4' />
-                    <h3 className='text-lg font-bold text-slate-700 mb-2'>Aucun article trouvé</h3>
-                    <p className='text-slate-500 text-sm'>Essayez une recherche différente.</p>
-                </div>
+                <GlassCard className="text-center py-16 w-full">
+                    <BookOpen size={40} className="text-brand-border mx-auto mb-4" />
+                    <h3 className="text-lg font-bold text-brand-ink mb-2">Aucun article trouvé</h3>
+                    <p className="text-brand-muted text-sm mb-4">
+                        {published.length === 0
+                            ? 'Aucun article publié pour le moment.'
+                            : 'Essayez une autre recherche ou catégorie.'}
+                    </p>
+                    {(query || cat !== 'Tous') && (
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setQuery('');
+                                setCat('Tous');
+                            }}
+                            className="btn-secondary text-sm"
+                        >
+                            Réinitialiser les filtres
+                        </button>
+                    )}
+                </GlassCard>
             )}
 
             {!loading && featured && (
-                <div className='mb-6'>
-                    <Link 
-                        href={'/articles/' + featured.id} 
-                        className='bg-white rounded-2xl border border-slate-200 shadow-sm block group hover:shadow-md transition-all'
+                <div className="mb-6">
+                    <Link
+                        href={`/articles/${featured.id}`}
+                        className="glass-card block group hover:border-brand-primary/30 transition-all duration-300"
                     >
-                        <div className='flex flex-col md:flex-row gap-6 p-6'>
-                            <div className='w-full md:w-2/5 h-40 rounded-2xl flex items-center justify-center bg-gradient-to-br from-rose-500 to-rose-600'>
-                                <BookOpen size={48} className='text-white/50' />
-                            </div>
-                            <div className='flex-1'>
-                                <div className='flex items-center gap-2 mb-3'>
-                                    <span className='px-3 py-1 rounded-full text-xs font-bold text-rose-800 bg-rose-100'>{getCategoryName(featured)}</span>
-                                    <span className='text-xs text-slate-400'>Article vedette</span>
+                        <div className="flex flex-col md:flex-row gap-6 p-6">
+                            <ArticleThumb large />
+                            <div className="flex-1 min-w-0">
+                                <div className="flex flex-wrap items-center gap-2 mb-3">
+                                    <span className="status-badge badge-completed">
+                                        {getCategoryName(featured)}
+                                    </span>
+                                    {featured.is_featured && (
+                                        <span className="text-xs font-semibold text-brand-primary flex items-center gap-1">
+                                            <Sparkles size={12} /> À la une
+                                        </span>
+                                    )}
+                                    {featured.published_at && (
+                                        <span className="text-xs text-brand-muted">
+                                            {formatDate(featured.published_at)}
+                                        </span>
+                                    )}
                                 </div>
-                                <h2 className='text-xl font-extrabold text-slate-900 mb-3 group-hover:text-rose-700 transition-colors leading-snug'>{featured.title}</h2>
-                                <p className='text-slate-500 text-sm line-clamp-2 mb-4'>{featured.excerpt}</p>
-                                <div className='flex items-center gap-4 text-xs text-slate-400'>
-                                    <span className='flex items-center gap-1'><Eye size={13} />{featured.views_count || 0} vues</span>
-                                    <span className='flex items-center gap-1'><Heart size={13} />{featured.likes_count || 0}</span>
-                                    <span className='flex items-center gap-1'><Share2 size={13} />{featured.shares_count || 0}</span>
-                                    <span className='flex items-center gap-1 text-rose-700 font-semibold'>Lire la suite <ArrowRight size={13} /></span>
-                                </div>
+                                <h2 className="text-xl font-bold text-brand-ink mb-3 group-hover:text-brand-primary transition-colors leading-snug">
+                                    {featured.title}
+                                </h2>
+                                <p className="text-brand-muted text-sm line-clamp-3 mb-4">
+                                    {featured.excerpt}
+                                </p>
+                                <span className="inline-flex items-center gap-1 text-sm text-brand-primary font-semibold">
+                                    Lire l&apos;article <ArrowRight size={14} />
+                                </span>
                             </div>
                         </div>
                     </Link>
@@ -109,25 +217,33 @@ export default function Articles() {
             )}
 
             {!loading && rest.length > 0 && (
-                <div className='grid md:grid-cols-2 lg:grid-cols-3 gap-4'>
-                    {rest.map(a => (
-                        <Link 
-                            key={a.id} 
-                            href={'/articles/' + a.id} 
-                            className='bg-white rounded-2xl border border-slate-200 shadow-sm block group hover:shadow-md transition-all'
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {rest.map((a) => (
+                        <Link
+                            key={a.id}
+                            href={`/articles/${a.id}`}
+                            className="glass-card block group hover:border-brand-primary/30 transition-all duration-300 h-full"
                         >
-                            <div className='p-6'>
-                                <div className='w-full h-28 rounded-xl mb-4 flex items-center justify-center bg-gradient-to-br from-rose-500 to-rose-600'>
-                                    <BookOpen size={32} className='text-white/40' />
-                                </div>
-                                <span className='px-2.5 py-1 rounded-full text-xs font-bold text-rose-800 bg-rose-100'>{getCategoryName(a)}</span>
-                                <h3 className='font-bold text-slate-900 mt-2 mb-2 group-hover:text-rose-700 transition-colors leading-snug line-clamp-2'>{a.title}</h3>
-                                <p className='text-sm text-slate-500 line-clamp-2 mb-3'>{a.excerpt}</p>
-                                <div className='flex items-center justify-between text-xs text-slate-400'>
-                                    <span className='flex items-center gap-1'><Eye size={12} />{a.views_count || 0}</span>
-                                    <span className='flex items-center gap-1'><Heart size={12} />{a.likes_count || 0}</span>
-                                    <span className='flex items-center gap-1'><Share2 size={12} />{a.shares_count || 0}</span>
-                                    <span className='text-rose-700 font-semibold flex items-center gap-1'>Lire <ArrowRight size={12} /></span>
+                            <div className="p-5 flex flex-col h-full">
+                                <ArticleThumb />
+                                <span className="status-badge badge-inactive w-fit">
+                                    {getCategoryName(a)}
+                                </span>
+                                <h3 className="font-bold text-brand-ink mt-2 mb-2 group-hover:text-brand-primary transition-colors leading-snug line-clamp-2 text-sm">
+                                    {a.title}
+                                </h3>
+                                <p className="text-sm text-brand-muted line-clamp-2 mb-3 flex-1">
+                                    {a.excerpt}
+                                </p>
+                                <div className="flex items-center justify-between text-xs mt-auto pt-2 border-t border-brand-border">
+                                    {a.published_at ? (
+                                        <span className="text-brand-muted">{formatDate(a.published_at)}</span>
+                                    ) : (
+                                        <span />
+                                    )}
+                                    <span className="text-brand-primary font-semibold flex items-center gap-1">
+                                        Lire <ArrowRight size={12} />
+                                    </span>
                                 </div>
                             </div>
                         </Link>

@@ -19,6 +19,7 @@ class AuthTest extends TestCase
         $response = $this->postJson('/api/v1/register', [
             'nom' => 'Sara Belmokhi',
             'email' => 'sara@example.com',
+            'age' => 28,
             'motDePasse' => 'password123',
             'motDePasse_confirmation' => 'password123',
         ]);
@@ -37,7 +38,47 @@ class AuthTest extends TestCase
         $response = $this->postJson('/api/v1/register', []);
 
         $response->assertUnprocessable();
-        $response->assertJsonValidationErrors(['nom', 'email', 'motDePasse']);
+        $response->assertJsonValidationErrors(['nom', 'email', 'motDePasse', 'age']);
+    }
+
+    public function test_register_with_young_age_does_not_start_menopause(): void
+    {
+        $response = $this->postJson('/api/v1/register', [
+            'nom' => 'Jeune Patiente',
+            'email' => 'jeune@example.com',
+            'age' => 30,
+            'motDePasse' => 'password123',
+            'motDePasse_confirmation' => 'password123',
+        ]);
+
+        $response->assertCreated();
+        $response->assertJsonPath('menopause_started', false);
+        $response->assertJsonPath('user.menopause_eligible', false);
+
+        $this->assertDatabaseMissing('menopauses', [
+            'user_id' => User::where('email', 'jeune@example.com')->value('id'),
+        ]);
+    }
+
+    public function test_register_with_old_age_does_not_auto_start_menopause(): void
+    {
+        $response = $this->postJson('/api/v1/register', [
+            'nom' => 'Patiente Mature',
+            'email' => 'mature@example.com',
+            'age' => 52,
+            'motDePasse' => 'password123',
+            'motDePasse_confirmation' => 'password123',
+        ]);
+
+        $response->assertCreated();
+        $response->assertJsonPath('menopause_started', false);
+        $response->assertJsonPath('user.menopause_eligible', true);
+
+        $userId = User::where('email', 'mature@example.com')->value('id');
+
+        $this->assertDatabaseMissing('menopauses', [
+            'user_id' => $userId,
+        ]);
     }
 
     public function test_register_fails_with_duplicate_email(): void
@@ -47,6 +88,7 @@ class AuthTest extends TestCase
         $response = $this->postJson('/api/v1/register', [
             'nom' => 'Sara',
             'email' => 'sara@example.com',
+            'age' => 25,
             'motDePasse' => 'password123',
             'motDePasse_confirmation' => 'password123',
         ]);
@@ -60,6 +102,7 @@ class AuthTest extends TestCase
         $response = $this->postJson('/api/v1/register', [
             'nom' => 'Sara',
             'email' => 'sara@example.com',
+            'age' => 25,
             'motDePasse' => '123',
             'motDePasse_confirmation' => '123',
         ]);
@@ -73,6 +116,7 @@ class AuthTest extends TestCase
         $response = $this->postJson('/api/v1/register', [
             'nom' => 'Sara',
             'email' => 'sara@example.com',
+            'age' => 25,
             'motDePasse' => 'password123',
             'motDePasse_confirmation' => 'different123',
         ]);

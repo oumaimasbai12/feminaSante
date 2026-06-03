@@ -86,6 +86,16 @@ class Pregnancy extends Model
         return $this->hasMany(WeightGain::class);
     }
 
+    public function symptoms(): HasMany
+    {
+        return $this->hasMany(PregnancySymptom::class);
+    }
+
+    public function milestones(): HasMany
+    {
+        return $this->hasMany(PregnancyMilestone::class);
+    }
+
     protected static function newFactory(): Factory
     {
         return PregnancyFactory::new();

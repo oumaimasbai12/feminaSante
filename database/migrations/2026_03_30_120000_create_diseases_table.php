@@ -41,7 +41,7 @@ return new class extends Migration
             $table->boolean('is_chronic')->default(false);
             $table->string('icd10_code', 20)->nullable();
             $table->json('resources')->nullable();
-            $table->text('disclaimer')->default('⚠️ Ces informations sont éducatives et ne remplacent pas un avis médical professionnel.');
+            $table->string('disclaimer', 500)->default('⚠️ Ces informations sont éducatives et ne remplacent pas un avis médical professionnel.');
             $table->integer('view_count')->default(0);
             $table->boolean('is_active')->default(true);
             $table->timestamps();

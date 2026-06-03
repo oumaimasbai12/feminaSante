@@ -51,7 +51,8 @@ class MenopauseTest extends TestCase
 
         $response->assertCreated();
         $response->assertJsonFragment(['message' => 'Menopause record created successfully.']);
-        $response->assertJsonPath('menopause.stage', 'perimenopause');
+        // 2025-04-10 is > 12 months before test date → auto-classified postmenopause
+        $response->assertJsonPath('menopause.stage', 'postmenopause');
         $response->assertJsonPath('menopause.status', 'ongoing');
         $response->assertJsonPath('menopause.hot_flashes', true);
     }

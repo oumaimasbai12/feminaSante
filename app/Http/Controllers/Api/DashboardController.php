@@ -45,13 +45,17 @@ class DashboardController extends Controller
 
         $unreadNotificationsQuery = AppNotification::where('user_id', $user->id)->whereNull('read_at');
 
-        $predictions = $cycles->count() >= 2 ? $cycleService->getPredictions($cycles) : [];
+        $predictions = $cycles->isNotEmpty() ? $cycleService->getPredictions($cycles) : [];
         $nextPeriodPrediction = collect($predictions)->firstWhere('type', 'period');
         $nextOvulationPrediction = collect($predictions)->firstWhere('type', 'ovulation');
 
+        $avgCycleLength = $cycleService->calculateAverageCycleLength($cycles) ?? 28;
+
         $daysUntilNextPeriod = null;
         if ($nextPeriodPrediction) {
-            $daysUntilNextPeriod = Carbon::now()->diffInDays(Carbon::parse($nextPeriodPrediction['predicted_date']), false);
+            $daysUntilNextPeriod = (int) Carbon::today()->startOfDay()->diffInDays(
+                Carbon::parse($nextPeriodPrediction['predicted_date'])->startOfDay()
+            );
         }
 
         return response()->json([
@@ -76,7 +80,9 @@ class DashboardController extends Controller
                 'active_menopause' => $activeMenopause,
                 'predictions' => $predictions,
                 'days_until_next_period' => $daysUntilNextPeriod,
-                'current_cycle_day' => $latestCycle ? $cycleService->getCurrentCycleDay($latestCycle) : null,
+                'current_cycle_day' => $latestCycle
+                    ? $cycleService->getCurrentCycleDay($latestCycle, $avgCycleLength)
+                    : null,
             ],
             'care' => [
                 'next_appointment' => $nextAppointment,

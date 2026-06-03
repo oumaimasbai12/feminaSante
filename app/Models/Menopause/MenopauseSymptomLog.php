@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class MenopauseSymptomLog extends Model
 {
@@ -24,6 +25,10 @@ class MenopauseSymptomLog extends Model
         'night_sweats',
         'mood_changes',
         'sleep_changes',
+        'stress_level',
+        'caffeine_cups',
+        'exercise_minutes',
+        'alcohol_units',
         'notes',
     ];
 
@@ -43,6 +48,17 @@ class MenopauseSymptomLog extends Model
     public function menopause(): BelongsTo
     {
         return $this->belongsTo(Menopause::class);
+    }
+
+    /** Pivot to predefined symptom catalog (menopause_symptom_log_symptom). */
+    public function catalogSymptoms(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            MenopauseSymptom::class,
+            'menopause_symptom_log_symptom',
+            'menopause_symptom_log_id',
+            'menopause_symptom_id'
+        )->withPivot('intensity')->withTimestamps();
     }
 
     protected static function newFactory(): Factory

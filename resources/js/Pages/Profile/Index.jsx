@@ -1,145 +1,392 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Head } from '@inertiajs/react';
 import AppLayout from '../../Layouts/AppLayout';
-import { User, Mail, Save, Lock, Camera, CheckCircle } from 'lucide-react';
+import GlassCard from '@/Components/UI/GlassCard';
+import StatTile from '@/Components/UI/StatTile';
+import PasswordInput from '../../Components/PasswordInput';
+import {
+    User,
+    Mail,
+    Save,
+    Lock,
+    CheckCircle,
+    Heart,
+    Baby,
+    Moon,
+    Calendar,
+    Brain,
+    Cake,
+    AlertTriangle,
+} from 'lucide-react';
+import { isMenopauseEligible, MENOPAUSE_MIN_AGE } from '../../utils/menopause';
+import { getStoredUser } from '../../utils/auth';
+
+function normalizeUser(raw) {
+    if (!raw) return {};
+    return {
+        ...raw,
+        name: raw.name || raw.nom || '',
+        nom: raw.nom || raw.name || '',
+    };
+}
+
+function formatMemberSince(dateStr) {
+    if (!dateStr) return null;
+    return new Date(dateStr).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+}
+
+function menopauseSubLabel(health, user) {
+    if (health?.active_menopause) return 'Suivi actif';
+    if (isMenopauseEligible(user)) return 'Configurer le profil';
+    return `Disponible dès ${MENOPAUSE_MIN_AGE} ans`;
+}
+
+function PageSkeleton() {
+    return (
+        <div className="space-y-6 w-full animate-pulse">
+            <GlassCard className="h-28" />
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+                {[...Array(5)].map((_, i) => (
+                    <GlassCard key={i} className="h-[118px]" />
+                ))}
+            </div>
+            <div className="grid lg:grid-cols-2 gap-6">
+                <GlassCard className="h-72" />
+                <GlassCard className="h-72" />
+            </div>
+        </div>
+    );
+}
 
 export default function Profile() {
-    const [user, setUser] = useState({ name:'', nom:'', email:'', birth_date:'', blood_type:'', gender:'female' });
+    const [user, setUser] = useState({ name: '', nom: '', email: '' });
+    const [stats, setStats] = useState(null);
+    const [health, setHealth] = useState(null);
+    const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
-    const [tab, setTab] = useState('profile');
-    const [passForm, setPassForm] = useState({ current_password:'', password:'', password_confirmation:'' });
+    const [saveError, setSaveError] = useState('');
+    const [passForm, setPassForm] = useState({
+        current_password: '',
+        password: '',
+        password_confirmation: '',
+    });
     const [passError, setPassError] = useState('');
+    const [passSaving, setPassSaving] = useState(false);
+    const [passSaved, setPassSaved] = useState(false);
 
-    useEffect(()=>{
-        try {
-            const u = JSON.parse(localStorage.getItem('user')||'{}');
-            setUser(prev=>({...prev,...u,name:u.name||u.nom||'',nom:u.nom||u.name||'',birth_date:u.birth_date||u.date_of_birth||''}));
-        } catch(e) {}
-        window.axios.get('/api/v1/profile').then(r=>{
-            const u = r.data.user||r.data;
-            const normalized = {...u, name:u.name||u.nom||'', nom:u.nom||u.name||'', birth_date:u.birth_date||u.date_of_birth||''};
-            setUser(prev=>({...prev,...normalized}));
-            localStorage.setItem('user', JSON.stringify({...JSON.parse(localStorage.getItem('user')||'{}'),...normalized}));
-        }).catch(()=>{});
-    },[]);
+    useEffect(() => {
+        const stored = getStoredUser();
+        if (stored?.is_admin) {
+            window.location.href = '/admin/dashboard';
+            return;
+        }
+        if (stored?.is_gynecologist) {
+            window.location.href = '/gynecologist/dashboard';
+            return;
+        }
+
+        Promise.all([
+            window.axios.get('/api/v1/profile'),
+            window.axios.get('/api/v1/dashboard').catch(() => ({ data: null })),
+        ])
+            .then(([profileRes, dashRes]) => {
+                const u = normalizeUser(profileRes.data.user || profileRes.data);
+                setUser(u);
+                localStorage.setItem(
+                    'user',
+                    JSON.stringify({ ...JSON.parse(localStorage.getItem('user') || '{}'), ...u }),
+                );
+
+                if (dashRes.data) {
+                    setStats(dashRes.data.stats || null);
+                    setHealth(dashRes.data.health_overview || null);
+                }
+            })
+            .catch(() => {})
+            .finally(() => setLoading(false));
+    }, []);
 
     const save = async () => {
         setSaving(true);
+        setSaveError('');
         try {
-            const payload = {
+            const r = await window.axios.put('/api/v1/profile', {
                 name: user.name || user.nom,
                 email: user.email,
-                birth_date: user.birth_date || null,
-                blood_type: user.blood_type || null,
-                gender: user.gender || 'female',
-            };
-            const r = await window.axios.put('/api/v1/profile', payload);
-            const updated = r.data.user||r.data;
-            const normalized = {...updated, name:updated.name||updated.nom||'', nom:updated.nom||updated.name||'', birth_date:updated.birth_date||''};
-            setUser(prev=>({...prev,...normalized}));
-            localStorage.setItem('user', JSON.stringify({...JSON.parse(localStorage.getItem('user')||'{}'),...normalized}));
-            setSaved(true); setTimeout(()=>setSaved(false), 3000);
-        } catch(e) { alert(e.response?.data?.message||'Error saving'); }
+            });
+            const updated = normalizeUser(r.data.user || r.data);
+            setUser(updated);
+            localStorage.setItem(
+                'user',
+                JSON.stringify({ ...JSON.parse(localStorage.getItem('user') || '{}'), ...updated }),
+            );
+            setSaved(true);
+            setTimeout(() => setSaved(false), 3000);
+        } catch (e) {
+            setSaveError(e.response?.data?.message || 'Erreur lors de l’enregistrement.');
+        }
         setSaving(false);
     };
 
-    const ini = (n) => (n||'U').charAt(0).toUpperCase();
-    const tabs = [{v:'profile',l:'Informations'},{v:'security',l:'Sécurité'},{v:'health',l:'Préf. santé'}];
+    const savePassword = async () => {
+        setPassError('');
+        setPassSaving(true);
+        try {
+            await window.axios.put('/api/v1/profile/password', passForm);
+            setPassForm({ current_password: '', password: '', password_confirmation: '' });
+            setPassSaved(true);
+            setTimeout(() => setPassSaved(false), 3000);
+        } catch (e) {
+            const msg =
+                e.response?.data?.message ||
+                (e.response?.data?.errors
+                    ? Object.values(e.response.data.errors)[0][0]
+                    : 'Erreur lors de la mise à jour.');
+            setPassError(msg);
+        }
+        setPassSaving(false);
+    };
 
-    const fields = [
-        {k:'name',l:'Nom complet',t:'text',icon:User,ph:'Your name'},
-        {k:'email',l:'Adresse e-mail',t:'email',icon:Mail,ph:'your@email.com'},
-        {k:'birth_date',l:'Date de naissance',t:'date',icon:User,ph:''},
-    ];
+    const ini = (n) => (n || 'U').charAt(0).toUpperCase();
+    const displayName = user.name || user.nom || 'Utilisatrice';
+    const menopauseOk = isMenopauseEligible(user);
+    const memberSince = formatMemberSince(user.created_at);
 
-    const bloodTypes = ['A+','A-','B+','B-','AB+','AB-','O+','O-'];
+    const journeyTiles = useMemo(() => {
+        const menopauseValue = health?.active_menopause
+            ? 'Active'
+            : menopauseOk
+              ? 'À configurer'
+              : `Dès ${MENOPAUSE_MIN_AGE} ans`;
+
+        return [
+            {
+                label: 'Cycles',
+                value: stats?.cycles_count ?? 0,
+                sub: 'suivis',
+                icon: Heart,
+                href: '/cycles',
+            },
+            {
+                label: 'Grossesses',
+                value: stats?.pregnancies_count ?? 0,
+                sub: 'enregistrées',
+                icon: Baby,
+                href: '/pregnancies',
+            },
+            {
+                label: 'Ménopause',
+                value: menopauseValue,
+                sub: menopauseSubLabel(health, user),
+                icon: Moon,
+                href: menopauseOk ? '/menopause' : null,
+            },
+            {
+                label: 'Rendez-vous',
+                value: stats?.appointments_count ?? 0,
+                sub: 'planifiés',
+                icon: Calendar,
+                href: '/appointments',
+            },
+            {
+                label: 'Quiz',
+                value: stats?.quiz_results_count ?? 0,
+                sub: 'complétés',
+                icon: Brain,
+                href: '/quizzes',
+            },
+        ];
+    }, [stats, health, user, menopauseOk]);
+
+    if (loading) {
+        return (
+            <AppLayout title="Mon profil">
+                <Head title="Mon profil - FeminaSante" />
+                <PageSkeleton />
+            </AppLayout>
+        );
+    }
 
     return (
-        <AppLayout title='Mon profil'>
-            <div className='max-w-2xl mx-auto space-y-6'>
-                {/* Profile header card */}
-                <div className='card text-center relative overflow-hidden'>
-                    <div className='absolute top-0 left-0 right-0 h-24' style={{background:'linear-gradient(135deg,#f472b6,#fb7185)'}}></div>
-                    <div className='relative pt-12 pb-2'>
-                        <div className='relative inline-block'>
-                            <div className='w-24 h-24 rounded-full border-4 border-white shadow-xl flex items-center justify-center text-white text-3xl font-bold mx-auto' style={{background:'linear-gradient(135deg,#f472b6,#ffb6c1)'}}>{ini(user.name)}</div>
-                            <button className='absolute bottom-0 right-0 w-7 h-7 rounded-full bg-white shadow-md flex items-center justify-center border-2 border-pink-100 hover:bg-pink-50 transition-colors'><Camera size={13} className='text-pink-700'/></button>
+        <AppLayout title="Mon profil">
+            <Head title="Mon profil - FeminaSante" />
+
+            <p className="text-brand-muted text-sm mb-6">
+                Gérez vos informations personnelles et consultez un aperçu de votre parcours santé.
+            </p>
+
+            <div className="space-y-6 w-full">
+                <GlassCard className="p-5 sm:p-6">
+                    <div className="flex flex-col sm:flex-row sm:items-start gap-5">
+                        <div className="w-20 h-20 rounded-2xl bg-brand-bg border border-brand-border flex items-center justify-center text-brand-primary text-2xl font-bold shrink-0">
+                            {ini(displayName)}
                         </div>
-                        <h2 className='text-xl font-bold text-gray-900 mt-3'>{user.name||user.nom||'Votre nom'}</h2>
-                        <p className='text-gray-500 text-sm'>{user.email}</p>
-                        {saved && <div className='inline-flex items-center gap-2 mt-3 px-4 py-2 rounded-full bg-green-50 text-green-700 text-sm font-semibold'><CheckCircle size={16}/>Profil sauvegardé !</div>}
-                    </div>
-                </div>
-
-                {/* Tabs */}
-                <div className='flex bg-white rounded-2xl p-1.5 shadow-sm border border-pink-50'>
-                    {tabs.map(t=>(
-                        <button key={t.v} onClick={()=>setTab(t.v)} className={'flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all '+(tab===t.v?'text-white shadow-sm':'text-gray-500 hover:text-pink-700')} style={tab===t.v?{background:'linear-gradient(135deg,#f472b6,#ffb6c1)'}:{}}>{t.l}</button>
-                    ))}
-                </div>
-
-                {/* Profile tab */}
-                {tab==='profile' && (
-                    <div className='card space-y-4'>
-                        {fields.map(f=>{
-                            const I=f.icon;
-                            return (
-                                <div key={f.k}>
-                                    <label className='block text-sm font-semibold text-gray-700 mb-2'>{f.l}</label>
-                                    <div className='relative'>
-                                        <I size={17} className='absolute left-4 top-1/2 -translate-y-1/2 text-gray-400'/>
-                                        <input type={f.t} value={user[f.k]||''} onChange={e=>setUser({...user,[f.k]:e.target.value})} placeholder={f.ph} className='input-field pl-11'/>
-                                    </div>
+                        <div className="flex-1 min-w-0">
+                            <h2 className="text-xl font-bold text-brand-ink">{displayName}</h2>
+                            <p className="text-brand-muted text-sm mt-0.5">{user.email}</p>
+                            <div className="flex flex-wrap gap-2 mt-3">
+                                {user.age != null && (
+                                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-brand-bg border border-brand-border text-brand-ink px-3 py-1.5 rounded-full">
+                                        <Cake size={13} /> {user.age} ans
+                                    </span>
+                                )}
+                                {memberSince && (
+                                    <span className="text-xs font-semibold bg-brand-soft text-brand-primary border border-brand-primary/20 px-3 py-1.5 rounded-full">
+                                        Membre depuis {memberSince}
+                                    </span>
+                                )}
+                            </div>
+                            {saved && (
+                                <div className="inline-flex items-center gap-2 mt-3 px-3 py-1.5 rounded-full bg-green-50 text-green-700 border border-green-200 text-sm font-semibold">
+                                    <CheckCircle size={15} /> Profil enregistré
                                 </div>
-                            );
-                        })}
-                        <div>
-                            <label className='block text-sm font-semibold text-gray-700 mb-2'>Groupe sanguin</label>
-                            <div className='grid grid-cols-4 gap-2'>
-                                {bloodTypes.map(b=>(
-                            <button type='button' key={b} onClick={()=>setUser({...user,blood_type:b})} className={'py-2 rounded-xl text-sm font-bold border-2 transition-all '+(user.blood_type===b?'border-pink-500 bg-pink-50 text-pink-700':'border-gray-100 text-gray-500 hover:border-pink-200')}>{b}</button>
-                        ))}
+                            )}
+                        </div>
                     </div>
-                </div>
-                        <button onClick={save} disabled={saving} className='btn-primary w-full flex items-center justify-center gap-2'>
-                            {saving?<span className='w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin'/>:<Save size={17}/>}
-                            {saving?'Enregistrement...':'Enregistrer'}
-                        </button>
-                    </div>
-                )}
+                </GlassCard>
 
-                {tab==='security' && (
-                    <div className='card space-y-4'>
-                        <h3 className='font-bold text-gray-800 mb-1'>Changer le mot de passe</h3>
-                        {passError && <div className='p-3 rounded-xl bg-red-50 text-red-600 text-sm'>{passError}</div>}
-                        {[{k:'current_password',l:'Mot de passe actuel'},{k:'password',l:'Nouveau mot de passe'},{k:'password_confirmation',l:'Confirmer le nouveau mot de passe'}].map(f=>(
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                    {journeyTiles.map((item) =>
+                        item.href ? (
+                            <StatTile
+                                key={item.label}
+                                label={item.label}
+                                value={item.value}
+                                sub={item.sub}
+                                icon={item.icon}
+                                href={item.href}
+                            />
+                        ) : (
+                            <StatTile
+                                key={item.label}
+                                label={item.label}
+                                value={item.value}
+                                sub={item.sub}
+                                icon={item.icon}
+                            />
+                        ),
+                    )}
+                </div>
+
+                <div className="grid lg:grid-cols-2 gap-6">
+                    <GlassCard className="p-5 sm:p-6 space-y-4">
+                        <h3 className="text-base font-bold text-brand-ink">Mes informations</h3>
+
+                        {saveError && (
+                            <div className="p-3 rounded-xl text-sm border bg-red-50/80 border-red-200 text-red-800 flex items-start gap-2">
+                                <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+                                {saveError}
+                            </div>
+                        )}
+
+                        <div>
+                            <label className="block text-sm font-semibold text-brand-ink mb-2">
+                                Nom complet
+                            </label>
+                            <div className="relative">
+                                <User
+                                    size={17}
+                                    className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-muted pointer-events-none"
+                                />
+                                <input
+                                    type="text"
+                                    value={user.name || user.nom || ''}
+                                    onChange={(e) =>
+                                        setUser({ ...user, name: e.target.value, nom: e.target.value })
+                                    }
+                                    className="input-field pl-11 w-full"
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-semibold text-brand-ink mb-2">
+                                Adresse e-mail
+                            </label>
+                            <div className="relative">
+                                <Mail
+                                    size={17}
+                                    className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-muted pointer-events-none"
+                                />
+                                <input
+                                    type="email"
+                                    value={user.email || ''}
+                                    onChange={(e) => setUser({ ...user, email: e.target.value })}
+                                    className="input-field pl-11 w-full"
+                                />
+                            </div>
+                        </div>
+                        {user.age != null && (
+                            <p className="text-xs text-brand-muted">
+                                Votre âge ({user.age} ans) a été défini à l’inscription et détermine
+                                l’accès au suivi ménopause.
+                            </p>
+                        )}
+                        <button
+                            type="button"
+                            onClick={save}
+                            disabled={saving}
+                            className="w-full btn-primary py-3"
+                        >
+                            {saving ? (
+                                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            ) : (
+                                <Save size={17} />
+                            )}
+                            {saving ? 'Enregistrement…' : 'Enregistrer'}
+                        </button>
+                    </GlassCard>
+
+                    <GlassCard className="p-5 sm:p-6 space-y-4">
+                        <h3 className="text-base font-bold text-brand-ink">Mot de passe</h3>
+
+                        {passError && (
+                            <div className="p-3 rounded-xl text-sm border bg-red-50/80 border-red-200 text-red-800 flex items-start gap-2">
+                                <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+                                {passError}
+                            </div>
+                        )}
+                        {passSaved && (
+                            <div className="p-3 rounded-xl bg-green-50 text-green-700 border border-green-200 text-sm flex items-center gap-2">
+                                <CheckCircle size={16} /> Mot de passe mis à jour
+                            </div>
+                        )}
+                        {[
+                            { k: 'current_password', l: 'Mot de passe actuel' },
+                            { k: 'password', l: 'Nouveau mot de passe' },
+                            { k: 'password_confirmation', l: 'Confirmer le nouveau mot de passe' },
+                        ].map((f) => (
                             <div key={f.k}>
-                                <label className='block text-sm font-semibold text-gray-700 mb-2'>{f.l}</label>
-                                <div className='relative'><Lock size={17} className='absolute left-4 top-1/2 -translate-y-1/2 text-gray-400'/><input type='password' value={passForm[f.k]} onChange={e=>setPassForm({...passForm,[f.k]:e.target.value})} className='input-field pl-11'/></div>
+                                <label className="block text-sm font-semibold text-brand-ink mb-2">
+                                    {f.l}
+                                </label>
+                                <PasswordInput
+                                    value={passForm[f.k]}
+                                    onChange={(e) =>
+                                        setPassForm({ ...passForm, [f.k]: e.target.value })
+                                    }
+                                    inputClassName="input-field pl-11 pr-11 w-full"
+                                    autoComplete={
+                                        f.k === 'current_password' ? 'current-password' : 'new-password'
+                                    }
+                                />
                             </div>
                         ))}
-                        <button className='btn-primary w-full flex items-center justify-center gap-2'><Lock size={17}/>Mettre à jour</button>
-                    </div>
-                )}
-
-                {tab==='health' && (
-                    <div className='card'>
-                        <h3 className='font-bold text-gray-800 mb-4'>Préférences de santé</h3>
-                        <div className='space-y-4'>
-                            {[{l:'Rappels de cycle',d:'Recevez une notification avant vos prochaines règles'},{l:'Alertes d\'ovulation',d:'Connaissez votre fenêtre fertile'},{l:'Rappels de médication',d:'Ne manquez jamais vos médicaments'},{l:'Résumé hebdomadaire',d:'Recevez un digest santé hebdomadaire'},{l:'Conseils IA',d:'Recommandations de santé personnalisées'}].map(p=>(
-                                <div key={p.l} className='flex items-center justify-between p-4 rounded-xl bg-pink-50/50 hover:bg-pink-50 transition-colors'>
-                                    <div>
-                                        <div className='font-semibold text-gray-800 text-sm'>{p.l}</div>
-                                        <div className='text-xs text-gray-500'>{p.d}</div>
-                                    </div>
-                                    <button className='w-12 h-6 rounded-full bg-gradient-to-r from-pink-400 to-purple-500 relative flex-shrink-0'>
-                                        <div className='w-5 h-5 bg-white rounded-full absolute right-0.5 top-0.5 shadow-sm transition-all'></div>
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
+                        <button
+                            type="button"
+                            onClick={savePassword}
+                            disabled={passSaving}
+                            className="w-full btn-secondary py-3"
+                        >
+                            {passSaving ? (
+                                <span className="w-4 h-4 border-2 border-brand-muted/30 border-t-brand-ink rounded-full animate-spin" />
+                            ) : (
+                                <Lock size={17} />
+                            )}
+                            {passSaving ? 'Mise à jour…' : 'Changer le mot de passe'}
+                        </button>
+                    </GlassCard>
+                </div>
             </div>
         </AppLayout>
     );

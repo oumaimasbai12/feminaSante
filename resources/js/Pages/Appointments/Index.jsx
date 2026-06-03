@@ -1,150 +1,382 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import AppLayout from '../../Layouts/AppLayout';
-import { Calendar, Clock, User, MapPin, Video, Phone, Plus, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import GlassCard from '@/Components/UI/GlassCard';
+import StatTile from '@/Components/UI/StatTile';
+import StatusBadge from '@/Components/UI/StatusBadge';
+import { getSearchParams, scrollMainToElement } from '@/utils/url';
+import {
+    Calendar,
+    Clock,
+    User,
+    MapPin,
+    Video,
+    Plus,
+    FileText,
+    ChevronDown,
+    ChevronUp,
+} from 'lucide-react';
 
-const STATUS = { pending:{l:'En attente',c:'bg-amber-100 text-amber-700',icon:AlertCircle}, confirmed:{l:'Confirmé',c:'bg-green-100 text-green-700',icon:CheckCircle}, cancelled:{l:'Annulé',c:'bg-red-100 text-red-700',icon:XCircle} };
+const STATUS_LABELS = {
+    pending: 'En attente',
+    confirmed: 'Confirmé',
+    cancelled: 'Refusé',
+    completed: 'Terminé',
+};
+
+const EMPTY_COPY = {
+    none: {
+        title: 'Aucun rendez-vous pour le moment',
+        body: 'Prenez votre premier rendez-vous avec un gynécologue certifié.',
+        cta: true,
+    },
+    upcoming: {
+        title: 'Aucun rendez-vous à venir',
+        body: 'Réservez un créneau avec un gynécologue pour planifier votre prochaine consultation.',
+        cta: true,
+    },
+    past: {
+        title: 'Aucun rendez-vous passé',
+        body: 'Vos consultations terminées et comptes-rendus apparaîtront ici.',
+        cta: false,
+    },
+};
+
+const TABS = [
+    { key: 'upcoming', label: 'À venir' },
+    { key: 'past', label: 'Passés' },
+];
+
+function AppointmentSkeleton() {
+    return (
+        <div className="space-y-4 w-full">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {[...Array(4)].map((_, i) => (
+                    <GlassCard key={i} className="h-[118px] animate-pulse" />
+                ))}
+            </div>
+            <GlassCard className="h-14 animate-pulse" />
+            {[...Array(3)].map((_, i) => (
+                <GlassCard key={i} className="h-36 animate-pulse" />
+            ))}
+        </div>
+    );
+}
+
+function VisitSummaryBlock({ summary, defaultOpen = false }) {
+    const [open, setOpen] = useState(defaultOpen);
+    if (!summary) return null;
+
+    return (
+        <div className="mt-3 rounded-xl border border-brand-border bg-brand-soft overflow-hidden">
+            <button
+                type="button"
+                onClick={() => setOpen((o) => !o)}
+                className="w-full flex items-center justify-between gap-2 px-3 py-2.5 text-left text-sm font-semibold text-brand-deep"
+            >
+                <span className="flex items-center gap-2">
+                    <FileText size={15} /> Compte-rendu du médecin
+                </span>
+                {open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </button>
+            {open && (
+                <div className="px-3 pb-3 text-sm text-brand-ink space-y-2 border-t border-brand-border pt-2">
+                    <p className="whitespace-pre-wrap">{summary.patient_summary}</p>
+                    {summary.prescription && (
+                        <p className="text-brand-muted">
+                            <span className="font-semibold">Prescription :</span> {summary.prescription}
+                        </p>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+}
 
 export default function Appointments() {
+    const { url } = usePage();
     const [appts, setAppts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [tab, setTab] = useState('upcoming');
-    const [showForm, setShowForm] = useState(false);
-    const [docs, setDocs] = useState([]);
-    const [form, setForm] = useState({ gynecologist_id:'', appointment_date:'', appointment_time:'', consultation_type:'in_person', reason:'', notes:'' });
 
-    useEffect(()=>{
-        Promise.all([
-            window.axios.get('/api/v1/appointments').catch(()=>({data:[]})),
-            window.axios.get('/api/v1/gynecologists').catch(()=>({data:[]})),
-        ]).then(([a,d])=>{
-            setAppts(Array.isArray(a.data)?a.data:(a.data.data||[]));
-            setDocs(Array.isArray(d.data)?d.data:(d.data.data||[]));
-        }).finally(()=>setLoading(false));
-    },[]);
+    const params = useMemo(() => getSearchParams(url), [url]);
+    const highlightId = parseInt(params.get('appointment') || '', 10) || null;
+    const expandSummary = params.get('expand') === 'summary';
+    const urlTab = params.get('tab');
+    const gynecologistFilter = parseInt(params.get('gynecologist') || '', 10) || null;
+
+    useEffect(() => {
+        window.axios
+            .get('/api/v1/appointments')
+            .then((a) => setAppts(Array.isArray(a.data) ? a.data : a.data.data || []))
+            .catch(() => setAppts([]))
+            .finally(() => setLoading(false));
+    }, []);
+
+    const resolvedHighlightId = useMemo(() => {
+        if (highlightId) return highlightId;
+        if (!gynecologistFilter || !expandSummary) return null;
+        const now = new Date();
+        const match = appts.find(
+            (a) =>
+                a.gynecologist_id === gynecologistFilter &&
+                a.visit_summary &&
+                (new Date(a.start_time) < now || a.status === 'completed' || a.status === 'cancelled'),
+        );
+        return match?.id ?? null;
+    }, [highlightId, gynecologistFilter, expandSummary, appts]);
+
+    useEffect(() => {
+        if (appts.length === 0) return;
+
+        if (urlTab === 'past' || urlTab === 'upcoming') {
+            setTab(urlTab);
+            return;
+        }
+
+        if (!resolvedHighlightId) return;
+
+        const target = appts.find((a) => a.id === resolvedHighlightId);
+        if (!target) return;
+
+        const now = new Date();
+        const isUpcoming =
+            new Date(target.start_time) >= now && target.status !== 'cancelled' && target.status !== 'completed';
+        setTab(isUpcoming ? 'upcoming' : 'past');
+    }, [resolvedHighlightId, appts, urlTab, url]);
+
+    useEffect(() => {
+        if (!resolvedHighlightId || loading) return;
+        const timer = setTimeout(() => {
+            scrollMainToElement(document.getElementById(`appointment-${resolvedHighlightId}`));
+        }, 200);
+        return () => clearTimeout(timer);
+    }, [resolvedHighlightId, loading, tab, url]);
 
     const now = new Date();
-    const upcoming = appts.filter(a=>new Date(a.start_time)>=now);
-    const past = appts.filter(a=>new Date(a.start_time)<now);
-    const list = tab==='upcoming'?upcoming:past;
-
-    const book = async () => {
-        try {
-            const start = new Date(`${form.appointment_date}T${form.appointment_time}`);
-            const end = new Date(start.getTime() + 30 * 60 * 1000);
-            const payload = {
-                gynecologist_id: form.gynecologist_id,
-                start_time: start.toISOString(),
-                end_time: end.toISOString(),
-                consultation_type: form.consultation_type,
-                reason: form.reason,
-                notes: form.notes,
-            };
-            const r = await window.axios.post('/api/v1/appointments', payload);
-            const appointment = r.data?.appointment || r.data;
-            setAppts([appointment, ...appts]);
-            setShowForm(false);
-        } catch(e) { alert(e.response?.data?.message||'Booking failed'); }
-    };
+    const upcoming = appts.filter(
+        (a) => new Date(a.start_time) >= now && a.status !== 'cancelled',
+    );
+    const past = appts.filter(
+        (a) =>
+            new Date(a.start_time) < now ||
+            a.status === 'cancelled' ||
+            a.status === 'completed',
+    );
+    const list = tab === 'upcoming' ? upcoming : past;
+    const onlineCount = appts.filter((a) => a.consultation_type === 'online').length;
+    const confirmedCount = upcoming.filter((a) => a.status === 'confirmed').length;
+    const hasAnyAppointments = appts.length > 0;
+    const emptyCopy = !hasAnyAppointments
+        ? EMPTY_COPY.none
+        : tab === 'upcoming'
+          ? EMPTY_COPY.upcoming
+          : EMPTY_COPY.past;
 
     return (
-        <AppLayout title='Appointments'>
-            <div className='space-y-6'>
-                <div className='flex items-center justify-between'>
-                    <div className='flex bg-white rounded-2xl p-1.5 shadow-sm border border-slate-200 gap-1'>
-                        {['upcoming','passés'].map(t=>(
-                            <button key={t} onClick={()=>setTab(t)} className={`px-5 py-2 rounded-xl text-sm font-semibold capitalize transition-all ${tab===t?'bg-slate-900 text-white':'text-slate-600 hover:text-slate-900 hover:bg-slate-50'}`}>{t}</button>
-                        ))}
-                    </div>
-                    <button onClick={()=>setShowForm(!showForm)} className='flex items-center gap-2 text-sm px-5 py-3 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 text-white font-semibold hover:from-rose-600 hover:to-rose-700 transition-all shadow-sm'>
-                        <Plus size={18}/>Prendre rendez-vous
-                    </button>
-                </div>
+        <AppLayout title="Mes rendez-vous">
+            <Head title="Mes rendez-vous - FeminaSante" />
 
-                {showForm && (
-                    <div className='bg-white rounded-2xl border border-slate-200 shadow-sm p-6'>
-                        <h3 className='font-bold text-slate-900 mb-5 text-lg'>Nouveau rendez-vous</h3>
-                        <div className='grid md:grid-cols-2 gap-4'>
-                            <div>
-                                <label className='block text-sm font-semibold text-slate-700 mb-2'>Gynécologue</label>
-                                <select value={form.gynecologist_id} onChange={e=>setForm({ ...form, gynecologist_id:e.target.value })} className='w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none transition-all'>
-                                    <option value=''>Choisir un médecin...</option>
-                                    {docs.map(d=><option key={d.id} value={d.id}>Dr. {d.first_name} {d.last_name}</option>)}
-                                </select>
-                            </div>
-                            <div>
-                                <label className='block text-sm font-semibold text-slate-700 mb-2'>Type de consultation</label>
-                                <select value={form.consultation_type} onChange={e=>setForm({ ...form, consultation_type:e.target.value })} className='w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none transition-all'>
-                                    <option value='in_person'>En cabinet</option><option value='online'>En ligne</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className='block text-sm font-semibold text-slate-700 mb-2'>Date</label>
-                                <input type='date' value={form.appointment_date} onChange={e=>setForm({ ...form, appointment_date:e.target.value })} className='w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none transition-all'/>
-                            </div>
-                            <div>
-                                <label className='block text-sm font-semibold text-slate-700 mb-2'>Heure</label>
-                                <input type='time' value={form.appointment_time} onChange={e=>setForm({ ...form, appointment_time:e.target.value })} className='w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none transition-all'/>
-                            </div>
-                            <div className='md:col-span-2'>
-                                <label className='block text-sm font-semibold text-slate-700 mb-2'>Motif de la consultation</label>
-                                <input type='text' value={form.reason} onChange={e=>setForm({ ...form, reason:e.target.value })} placeholder='ex: Consultation annuelle, suivi...' className='w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none transition-all'/>
-                            </div>
-                            <div className='md:col-span-2'>
-                                <label className='block text-sm font-semibold text-slate-700 mb-2'>Notes supplémentaires</label>
-                                <textarea value={form.notes} onChange={e=>setForm({ ...form, notes:e.target.value })} rows={3} className='w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none transition-all resize-none'/>
-                            </div>
+            <p className="text-brand-muted text-sm mb-6">
+                Consultez vos consultations à venir, préparez votre visite et accédez aux comptes-rendus.
+            </p>
+
+            {loading && <AppointmentSkeleton />}
+
+            {!loading && (
+                <>
+                    {appts.length > 0 && (
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                            <StatTile
+                                label="Total"
+                                value={appts.length}
+                                sub="rendez-vous"
+                                icon={Calendar}
+                            />
+                            <StatTile
+                                label="À venir"
+                                value={upcoming.length}
+                                sub={confirmedCount ? `${confirmedCount} confirmé${confirmedCount > 1 ? 's' : ''}` : 'prochains créneaux'}
+                                icon={Clock}
+                            />
+                            <StatTile
+                                label="Passés"
+                                value={past.length}
+                                sub="historique"
+                                icon={FileText}
+                            />
+                            <StatTile
+                                label="En ligne"
+                                value={onlineCount}
+                                sub="consultations vidéo"
+                                icon={Video}
+                            />
                         </div>
-                        <div className='flex gap-3 mt-6'>
-                            <button onClick={book} className='flex-1 px-5 py-3 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 text-white font-semibold hover:from-rose-600 hover:to-rose-700 transition-all shadow-sm'>
-                                Confirmer le rendez-vous
-                            </button>
-                            <button onClick={()=>setShowForm(false)} className='flex-1 px-5 py-3 rounded-xl border-2 border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 transition-all'>
-                                Annuler
-                            </button>
-                        </div>
+                    )}
+
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                        {hasAnyAppointments && (
+                            <div className="flex glass-card p-1.5 gap-1 overflow-x-auto">
+                                {TABS.map((t) => {
+                                    const count = t.key === 'upcoming' ? upcoming.length : past.length;
+                                    const isActive = tab === t.key;
+                                    return (
+                                        <button
+                                            key={t.key}
+                                            type="button"
+                                            onClick={() => setTab(t.key)}
+                                            aria-pressed={isActive}
+                                            className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 whitespace-nowrap inline-flex items-center gap-2 ${
+                                                isActive
+                                                    ? 'bg-brand-bg text-brand-ink border-2 border-brand-primary/35 shadow-sm'
+                                                    : 'text-brand-muted hover:text-brand-ink hover:bg-brand-bg/60 border-2 border-transparent'
+                                            }`}
+                                        >
+                                            {t.label}
+                                            <span
+                                                className={`text-xs tabular-nums px-1.5 py-0.5 rounded-md ${
+                                                    isActive
+                                                        ? 'bg-brand-primary/10 text-brand-primary font-bold'
+                                                        : 'bg-brand-bg text-brand-muted'
+                                                }`}
+                                            >
+                                                {count}
+                                            </span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
+                        <Link
+                            href="/gynecologists"
+                            className={`btn-primary inline-flex items-center justify-center gap-2 shrink-0 ${!hasAnyAppointments ? 'w-full sm:w-auto sm:ml-auto' : ''}`}
+                        >
+                            <Plus size={18} /> Prendre rendez-vous
+                        </Link>
                     </div>
-                )}
 
-                {loading && <div className='flex justify-center py-16'><div className='w-10 h-10 border-4 border-rose-400 border-t-transparent rounded-full animate-spin'></div></div>}
+                    {list.length === 0 && (
+                        <GlassCard className="text-center py-16 w-full">
+                            <Calendar size={48} className="text-brand-border mx-auto mb-4" />
+                            <h3 className="text-lg font-bold text-brand-ink mb-2">{emptyCopy.title}</h3>
+                            <p className="text-brand-muted text-sm mb-6 max-w-md mx-auto">{emptyCopy.body}</p>
+                            {emptyCopy.cta && (
+                                <Link href="/gynecologists" className="btn-primary inline-flex items-center gap-2">
+                                    <Plus size={18} /> Trouver un gynécologue
+                                </Link>
+                            )}
+                        </GlassCard>
+                    )}
 
-                {!loading && list.length === 0 && (
-                    <div className='text-center py-16 bg-white rounded-2xl border border-slate-200 shadow-sm'>
-                        <Calendar size={48} className='text-slate-200 mx-auto mb-4'/>
-                        <h3 className='text-lg font-bold text-slate-700 mb-2'>Pas de rendez-vous {tab}</h3>
-                        <p className='text-slate-500 text-sm mb-6'>{tab==='upcoming'?'Prenez votre premier rendez-vous avec un gynécologue.':'Vos rendez-vous passés apparaîtront ici.'}</p>
-                        {tab==='upcoming'&&<button onClick={()=>setShowForm(true)} className='flex items-center gap-2 mx-auto px-5 py-3 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 text-white font-semibold hover:from-rose-600 hover:to-rose-700 transition-all shadow-sm'>
-                            <Plus size={18}/>Prendre rendez-vous
-                        </button>}
-                    </div>
-                )}
+                    <div className="space-y-4 w-full">
+                        {list.map((a) => {
+                            const doc = a.gynecologist;
+                            const isHighlighted = a.id === resolvedHighlightId;
+                            const start = new Date(a.start_time);
 
-                <div className='space-y-4'>
-                    {list.map(a=>{
-                        const s = STATUS[a.status]||STATUS.pending;
-                        const SI = s.icon;
-                        const doc = docs.find(d=>d.id===a.gynecologist_id);
-                        return (
-                            <div key={a.id} className='bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex flex-col md:flex-row md:items-center gap-4 hover:shadow transition-shadow'>
-                                <div className='flex items-center gap-4 flex-1'>
-                                    <div className='w-14 h-14 rounded-2xl flex items-center justify-center text-white font-bold text-lg flex-shrink-0 bg-gradient-to-r from-rose-500 to-rose-600'>
-                                        {doc?(doc.first_name||'D').charAt(0)+(doc.last_name||'R').charAt(0):<User size={22} className='text-white'/>}
-                                    </div>
-                                    <div>
-                                        <h4 className='font-bold text-slate-900'>{doc?'Dr. '+doc.first_name+' '+doc.last_name:'Médecin'}</h4>
-                                        <div className='flex flex-wrap items-center gap-3 mt-1 text-sm text-slate-500'>
-                                            <span className='flex items-center gap-1'><Calendar size={16}/>{new Date(a.start_time).toLocaleDateString('fr-FR', {month:'short',day:'numeric',year:'numeric'})}</span>
-                                            <span className='flex items-center gap-1'><Clock size={16}/>{new Date(a.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                            <span className='flex items-center gap-1'>{a.consultation_type==='online'?<Video size={16}/>:<MapPin size={16}/>}<span className='capitalize'>{a.consultation_type==='online'?'En ligne':'En cabinet'}</span></span>
+                            return (
+                                <div key={a.id} id={`appointment-${a.id}`}>
+                                    <GlassCard
+                                        className={`p-5 transition-colors ${
+                                            isHighlighted
+                                                ? 'border-brand-primary ring-2 ring-brand-primary/20'
+                                                : ''
+                                        }`}
+                                    >
+                                    <div className="flex flex-col md:flex-row md:items-start gap-4">
+                                        <div className="flex items-start gap-4 flex-1 min-w-0">
+                                            <div className="w-14 h-14 rounded-xl flex items-center justify-center font-bold text-lg shrink-0 bg-brand-bg border border-brand-border text-brand-primary">
+                                                {doc ? (
+                                                    <>
+                                                        {(doc.first_name || 'D').charAt(0)}
+                                                        {(doc.last_name || 'R').charAt(0)}
+                                                    </>
+                                                ) : (
+                                                    <User size={22} />
+                                                )}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex flex-wrap items-start justify-between gap-2 mb-1">
+                                                    <h4 className="font-bold text-brand-ink">
+                                                        {doc
+                                                            ? `Dr. ${doc.first_name} ${doc.last_name}`
+                                                            : 'Médecin'}
+                                                    </h4>
+                                                    <StatusBadge
+                                                        status={a.status}
+                                                        label={STATUS_LABELS[a.status] || a.status}
+                                                        className="md:hidden"
+                                                    />
+                                                </div>
+                                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-brand-muted">
+                                                    <span className="flex items-center gap-1 capitalize">
+                                                        <Calendar size={15} />
+                                                        {start.toLocaleDateString('fr-FR', {
+                                                            weekday: 'long',
+                                                            day: 'numeric',
+                                                            month: 'long',
+                                                        })}
+                                                    </span>
+                                                    <span className="flex items-center gap-1">
+                                                        <Clock size={15} />
+                                                        {start.toLocaleTimeString('fr-FR', {
+                                                            hour: '2-digit',
+                                                            minute: '2-digit',
+                                                        })}
+                                                    </span>
+                                                    <span className="flex items-center gap-1">
+                                                        {a.consultation_type === 'online' ? (
+                                                            <Video size={15} />
+                                                        ) : (
+                                                            <MapPin size={15} />
+                                                        )}
+                                                        {a.consultation_type === 'online'
+                                                            ? 'En ligne'
+                                                            : 'En cabinet'}
+                                                    </span>
+                                                </div>
+                                                {a.reason && (
+                                                    <p className="text-sm text-brand-muted mt-2">
+                                                        Motif : {a.reason}
+                                                    </p>
+                                                )}
+                                                {a.status === 'cancelled' && a.cancellation_reason && (
+                                                    <p className="text-sm text-red-600 mt-2 bg-red-50 rounded-lg px-3 py-2 border border-red-100">
+                                                        Motif du refus : {a.cancellation_reason}
+                                                    </p>
+                                                )}
+                                                {a.status === 'cancelled' && doc && (
+                                                    <Link
+                                                        href={`/gynecologists/${doc.id}?book=1`}
+                                                        className="inline-flex mt-2 text-sm font-semibold text-brand-primary hover:opacity-80 transition-opacity"
+                                                    >
+                                                        Choisir un autre créneau →
+                                                    </Link>
+                                                )}
+                                                <VisitSummaryBlock
+                                                    summary={a.visit_summary}
+                                                    defaultOpen={
+                                                        isHighlighted &&
+                                                        expandSummary &&
+                                                        !!a.visit_summary
+                                                    }
+                                                />
+                                            </div>
                                         </div>
-                                        {a.reason&&<p className='text-sm text-slate-500 mt-1'>{a.reason}</p>}
+                                        <div className="hidden md:block shrink-0 self-start">
+                                            <StatusBadge
+                                                status={a.status}
+                                                label={STATUS_LABELS[a.status] || a.status}
+                                            />
+                                        </div>
                                     </div>
+                                </GlassCard>
                                 </div>
-                                <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold flex-shrink-0 ${s.c}`}><SI size={16}/>{s.l}</span>
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
+                            );
+                        })}
+                    </div>
+                </>
+            )}
         </AppLayout>
     );
 }

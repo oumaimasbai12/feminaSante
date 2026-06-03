@@ -4,12 +4,16 @@ namespace App\Http\Controllers\Api\Pregnancy;
 
 use App\Http\Controllers\Controller;
 use App\Models\Pregnancy\Pregnancy;
+use App\Services\PregnancyService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class PregnancyController extends Controller
 {
+    public function __construct(private readonly PregnancyService $pregnancyService)
+    {
+    }
     public function index(Request $request): JsonResponse
     {
         return response()->json(
@@ -35,16 +39,19 @@ class PregnancyController extends Controller
         $pregnancy = Pregnancy::create([
             ...$data,
             'user_id' => $user->id,
-            'due_date' => $data['due_date'] ?? Carbon::parse($data['start_date'])->addDays(280)->toDateString(),
+            'due_date' => $data['due_date'] ?? Carbon::parse($data['start_date'])->addDays(config('pregnancy.default_cycle_days', 280))->toDateString(),
             'pregnancy_type' => $data['pregnancy_type'] ?? 'simple',
             'statuts' => $data['statuts'] ?? 'ongoing',
             'high_risk' => $data['high_risk'] ?? false,
             'rhesus_negative' => $data['rhesus_negative'] ?? false,
         ]);
 
+        $this->pregnancyService->scheduleMilestones($pregnancy);
+        $this->pregnancyService->notifyPregnancyStarted($pregnancy);
+
         return response()->json([
             'message' => 'Pregnancy created successfully.',
-            'pregnancy' => $pregnancy->loadCount(['checkups', 'kickCounters', 'contractions', 'weightGains']),
+            'pregnancy' => $pregnancy->loadCount(['checkups', 'kickCounters', 'contractions', 'weightGains', 'milestones']),
         ], 201);
     }
 

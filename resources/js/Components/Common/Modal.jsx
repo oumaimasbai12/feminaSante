@@ -1,6 +1,13 @@
 import React, { useEffect } from 'react';
 
-export default function Modal({ children, show = false, maxWidth = '2xl', closeable = true, onClose = () => {} }) {
+export default function Modal({
+    children,
+    show = false,
+    maxWidth = '2xl',
+    closeable = true,
+    onClose = () => {},
+    solid = false,
+}) {
     const close = () => {
         if (closeable) {
             onClose();
@@ -36,12 +43,16 @@ export default function Modal({ children, show = false, maxWidth = '2xl', closea
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
             <button
                 type="button"
-                className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+                className="absolute inset-0 bg-brand-ink/30 backdrop-blur-sm"
                 aria-label="Fermer la fenêtre"
                 onClick={close}
             />
             <div
-                className={`relative z-10 w-full ${maxWidthClass} bg-white rounded-2xl text-left shadow-sm border border-slate-200`}
+                className={`relative z-10 w-full ${maxWidthClass} text-left ${
+                    solid
+                        ? 'rounded-2xl bg-white border border-brand-border shadow-xl overflow-hidden'
+                        : 'glass-card'
+                }`}
                 onClick={(e) => e.stopPropagation()}
             >
                 {children}

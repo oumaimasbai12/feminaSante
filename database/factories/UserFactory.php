@@ -29,7 +29,7 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'motDePasse' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
-            'birth_date' => fake()->date(),
+            'birth_date' => fake()->dateTimeBetween('-55 years', '-45 years')->format('Y-m-d'),
             'gender' => fake()->randomElement(['female', 'male', 'other']),
             'blood_type' => fake()->randomElement(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']),
             'emergency_contacts' => null,

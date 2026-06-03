@@ -1,106 +1,221 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from '@inertiajs/react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Head, Link } from '@inertiajs/react';
 import AppLayout from '../../Layouts/AppLayout';
-import { Search, MapPin, Star, Phone, Video, Clock, Calendar, Award, ChevronRight } from 'lucide-react';
+import GlassCard from '@/Components/UI/GlassCard';
+import StatTile from '@/Components/UI/StatTile';
+import {
+    Search,
+    MapPin,
+    Clock,
+    Calendar,
+    ChevronRight,
+    Stethoscope,
+    Users,
+    Banknote,
+} from 'lucide-react';
 
 export default function Gynecologists() {
     const [docs, setDocs] = useState([]);
-    const [query, setQuery] = useState('');
+    const [filters, setFilters] = useState({ cities: [], specialities: [] });
+    const [search, setSearch] = useState('');
     const [city, setCity] = useState('');
+    const [speciality, setSpeciality] = useState('');
     const [loading, setLoading] = useState(true);
 
+    const loadDocs = useCallback(() => {
+        setLoading(true);
+        const params = {};
+        if (search) params.search = search;
+        if (city) params.city = city;
+        if (speciality) params.speciality = speciality;
+
+        window.axios
+            .get('/api/v1/gynecologists', { params })
+            .then((r) => setDocs(Array.isArray(r.data) ? r.data : r.data.data || []))
+            .catch(() => setDocs([]))
+            .finally(() => setLoading(false));
+    }, [search, city, speciality]);
+
     useEffect(() => {
-        window.axios.get('/api/v1/gynecologists').then(r => {
-            const d = Array.isArray(r.data) ? r.data : (r.data.data || []);
-            setDocs(d);
-        }).catch(() => { }).finally(() => setLoading(false));
+        window.axios
+            .get('/api/v1/gynecologists/filters')
+            .then((r) =>
+                setFilters({
+                    cities: r.data.cities || [],
+                    specialities: r.data.specialities || [],
+                }),
+            )
+            .catch(() => {});
     }, []);
 
-    const filtered = docs.filter(d => {
-        const q = query.toLowerCase();
-        const mq = !q || d.first_name?.toLowerCase().includes(q) || d.last_name?.toLowerCase().includes(q) || d.speciality?.toLowerCase().includes(q);
-        const mc = !city || d.city?.toLowerCase().includes(city.toLowerCase());
-        return mq && mc;
-    });
+    useEffect(() => {
+        const t = setTimeout(loadDocs, search ? 300 : 0);
+        return () => clearTimeout(t);
+    }, [loadDocs, search, city, speciality]);
+
+    const withFee = docs.filter((d) => d.consultation_fee != null);
+    const avgFee =
+        withFee.length > 0
+            ? Math.round(
+                  withFee.reduce((sum, d) => sum + Number(d.consultation_fee), 0) / withFee.length,
+              )
+            : null;
+    const avgDuration =
+        docs.length > 0
+            ? Math.round(
+                  docs.reduce((sum, d) => sum + (d.consultation_duration || 30), 0) / docs.length,
+              )
+            : null;
 
     return (
-        <AppLayout title='Trouver un gynécologue'>
-            {/* Search bar */}
-            <div className='mb-6 p-5 bg-white rounded-2xl border border-slate-200 shadow-sm'>
-                <div className='grid md:grid-cols-2 gap-4'>
-                    <div className='relative'>
-                        <Search size={18} className='absolute left-4 top-1/2 -translate-y-1/2 text-slate-400' />
-                        <input 
-                            value={query} 
-                            onChange={e => setQuery(e.target.value)} 
-                            placeholder='Rechercher par nom ou spécialité...' 
-                            className='w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none transition-all pl-11' 
-                        />
-                    </div>
-                    <div className='relative'>
-                        <MapPin size={18} className='absolute left-4 top-1/2 -translate-y-1/2 text-slate-400' />
-                        <input 
-                            value={city} 
-                            onChange={e => setCity(e.target.value)} 
-                            placeholder='Ville...' 
-                            className='w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none transition-all pl-11' 
-                        />
-                    </div>
+        <AppLayout title="Trouver un gynécologue">
+            <Head title="Trouver un gynécologue - FeminaSante" />
+
+            <p className="text-brand-muted text-sm mb-6">
+                Consultez des gynécologues certifiés et réservez un créneau en ligne ou en cabinet.
+            </p>
+
+            {!loading && docs.length > 0 && (
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <StatTile label="Praticiens" value={docs.length} sub="disponibles" icon={Stethoscope} />
+                    <StatTile label="Villes" value={filters.cities.length} sub="couvertes" icon={MapPin} />
+                    <StatTile
+                        label="Tarif moyen"
+                        value={avgFee ? `${avgFee} MAD` : '—'}
+                        sub="consultation"
+                        icon={Banknote}
+                    />
+                    <StatTile
+                        label="Durée moyenne"
+                        value={avgDuration ? `${avgDuration} min` : '—'}
+                        sub="par consultation"
+                        icon={Clock}
+                    />
                 </div>
-            </div>
+            )}
+
+            <GlassCard className="p-4 mb-6">
+                <div className="grid md:grid-cols-3 gap-3">
+                    <div className="relative">
+                        <Search
+                            size={16}
+                            className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-muted pointer-events-none"
+                        />
+                        <input
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            placeholder="Rechercher par nom…"
+                            className="input-field pl-9 w-full"
+                        />
+                    </div>
+                    <select
+                        value={city}
+                        onChange={(e) => setCity(e.target.value)}
+                        className="input-field w-full"
+                    >
+                        <option value="">Toutes les villes</option>
+                        {filters.cities.map((c) => (
+                            <option key={c} value={c}>
+                                {c}
+                            </option>
+                        ))}
+                    </select>
+                    <select
+                        value={speciality}
+                        onChange={(e) => setSpeciality(e.target.value)}
+                        className="input-field w-full"
+                    >
+                        <option value="">Toutes les spécialités</option>
+                        {filters.specialities.map((s) => (
+                            <option key={s} value={s}>
+                                {s}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            </GlassCard>
 
             {loading && (
-                <div className='grid md:grid-cols-2 xl:grid-cols-3 gap-4'>
+                <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
                     {[...Array(6)].map((_, i) => (
-                        <div key={i} className='p-5 bg-white rounded-2xl border border-slate-200 shadow-sm'>
-                            <div className='h-4 rounded mb-3 w-2/3 bg-slate-100'></div>
-                            <div className='h-3 rounded mb-2 w-1/2 bg-slate-100'></div>
-                            <div className='h-3 rounded w-3/4 bg-slate-100'></div>
-                        </div>
+                        <GlassCard key={i} className="p-5 animate-pulse h-44" />
                     ))}
                 </div>
             )}
 
-            {!loading && filtered.length === 0 && (
-                <div className='text-center py-16 bg-white rounded-2xl border border-slate-200 shadow-sm'>
-                    <div className='text-5xl mb-4'>👩‍⚕️</div>
-                    <h3 className='text-lg font-bold text-slate-900 mb-2'>Aucun gynécologue trouvé</h3>
-                    <p className='text-slate-500 text-sm'>Essayez d'ajuster vos filtres.</p>
-                </div>
+            {!loading && docs.length === 0 && (
+                <GlassCard className="text-center py-16 w-full">
+                    <Users size={40} className="text-brand-border mx-auto mb-4" />
+                    <h3 className="text-lg font-bold text-brand-ink mb-2">Aucun gynécologue trouvé</h3>
+                    <p className="text-brand-muted text-sm mb-4">
+                        Modifiez vos filtres ou élargissez votre recherche.
+                    </p>
+                    {(search || city || speciality) && (
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setSearch('');
+                                setCity('');
+                                setSpeciality('');
+                            }}
+                            className="btn-secondary text-sm"
+                        >
+                            Réinitialiser les filtres
+                        </button>
+                    )}
+                </GlassCard>
             )}
 
-            <div className='grid md:grid-cols-2 xl:grid-cols-3 gap-4'>
-                {filtered.map(doc => (
-                    <div key={doc.id} className='p-5 bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow transition-shadow group'>
-                        <div className='flex items-start gap-4 mb-4'>
-                            <div className='w-16 h-16 rounded-2xl flex items-center justify-center text-white font-bold text-xl flex-shrink-0 bg-gradient-to-br from-rose-500 to-rose-600'>
-                                {(doc.first_name || 'D').charAt(0)}{(doc.last_name || 'R').charAt(0)}
+            {!loading && docs.length > 0 && (
+                <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {docs.map((doc) => (
+                        <GlassCard
+                            key={doc.id}
+                            className="p-5 flex flex-col h-full hover:border-brand-primary/30 transition-all duration-300"
+                        >
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-14 h-14 rounded-xl flex items-center justify-center font-bold text-lg shrink-0 bg-brand-bg border border-brand-border text-brand-primary">
+                                    {(doc.first_name || 'D').charAt(0)}
+                                    {(doc.last_name || 'R').charAt(0)}
+                                </div>
+                                <div className="min-w-0">
+                                    <h3 className="font-bold text-brand-ink truncate">
+                                        Dr. {doc.first_name} {doc.last_name}
+                                    </h3>
+                                    <p className="text-sm text-brand-primary">
+                                        {doc.speciality || 'Gynécologue'}
+                                    </p>
+                                    {doc.city && (
+                                        <p className="text-xs text-brand-muted flex items-center gap-1 mt-0.5">
+                                            <MapPin size={11} />
+                                            {doc.city}
+                                        </p>
+                                    )}
+                                </div>
                             </div>
-                            <div className='flex-1 min-w-0'>
-                                <h3 className='font-bold text-slate-900 group-hover:text-rose-700 transition-colors'>Dr. {doc.first_name} {doc.last_name}</h3>
-                                <p className='text-sm text-rose-700 font-medium capitalize'>{doc.speciality || 'Gynécologue'}</p>
-                                {doc.city && <p className='text-xs text-slate-500 flex items-center gap-1 mt-1'><MapPin size={12} />{doc.city}</p>}
+
+                            <div className="flex items-center gap-4 mb-4 text-sm">
+                                <span className="flex items-center gap-1.5 text-brand-muted">
+                                    <Clock size={14} />
+                                    {doc.consultation_duration || 30} min
+                                </span>
+                                {doc.consultation_fee != null && (
+                                    <span className="font-semibold text-brand-ink">
+                                        {Number(doc.consultation_fee).toFixed(0)} MAD
+                                    </span>
+                                )}
                             </div>
-                        </div>
-                        {/* Rating */}
-                        {doc.rating && (
-                            <div className='flex items-center gap-2 mb-3'>
-                                <div className='flex'>{[...Array(5)].map((_, i) => <Star key={i} size={14} className={i < Math.round(doc.rating) ? 'text-amber-400 fill-amber-400' : 'text-slate-200 fill-slate-200'} />)}</div>
-                                <span className='text-sm font-semibold text-slate-700'>{doc.rating}</span>
-                                <span className='text-xs text-slate-500'>({doc.avis_count || 0} reviews)</span>
-                            </div>
-                        )}
-                        <div className='flex flex-wrap gap-2 mb-4'>
-                            {doc.consultation_type && <span className='flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-rose-50 text-rose-700'>{doc.consultation_type === 'online' ? <Video size={12} /> : <Phone size={12} />}{doc.consultation_type}</span>}
-                            {doc.consultation_duration && <span className='flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-50 text-slate-700'><Clock size={12} />{doc.consultation_duration} min</span>}
-                            {doc.consultation_fee && <span className='flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700'>{doc.consultation_fee} MAD</span>}
-                        </div>
-                        <Link href={'/gynecologists/' + doc.id} className='w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 text-white font-semibold hover:from-rose-600 hover:to-rose-700 transition-all shadow-sm text-sm'>
-                            <Calendar size={16} /> Voir le profil & réserver
-                        </Link>
-                    </div>
-                ))}
-            </div>
+
+                            <Link
+                                href={`/gynecologists/${doc.id}?book=1`}
+                                className="mt-auto btn-primary w-full text-sm inline-flex items-center justify-center gap-1"
+                            >
+                                <Calendar size={15} /> Réserver <ChevronRight size={14} />
+                            </Link>
+                        </GlassCard>
+                    ))}
+                </div>
+            )}
         </AppLayout>
     );
 }

@@ -1,19 +1,23 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Head } from '@inertiajs/react';
 import AppLayout from '../../Layouts/AppLayout';
-import { Baby, Plus, Heart, Weight, Activity, Calendar, CheckCircle, AlertCircle, Clock, X, TrendingUp, Footprints, Timer, Scale, Thermometer, ChevronRight, Trash2 } from 'lucide-react';
+import PregnancyDashboard from '../../Components/Pregnancy/PregnancyDashboard';
+import StatTile from '@/Components/UI/StatTile';
+import GlassCard from '@/Components/UI/GlassCard';
+import FilterPills from '@/Components/UI/FilterPills';
+import { Baby, Plus, Heart, Weight, Activity, Calendar, CheckCircle, AlertCircle, Clock, X, TrendingUp, Footprints, Timer, Scale, Thermometer, ChevronRight, Trash2, Square, Play, Lightbulb, ClipboardList, Info, Sprout, AlertTriangle } from 'lucide-react';
 
-/* ───────── Fruit milestones ───────── */
 const weeks = [
-    { w: 4, m: '🌱', d: 'Taille d\'une graine de pavot' },
-    { w: 8, m: '🫐', d: 'Taille d\'une framboise' },
-    { w: 12, m: '🍋', d: 'Taille d\'un citron vert' },
-    { w: 16, m: '🥑', d: 'Taille d\'un avocat' },
-    { w: 20, m: '🍌', d: 'Taille d\'une banane' },
-    { w: 24, m: '🌽', d: 'Taille d\'un épi de maïs' },
-    { w: 28, m: '🍆', d: 'Taille d\'une aubergine' },
-    { w: 32, m: '🎃', d: 'Taille d\'une courge' },
-    { w: 36, m: '🍈', d: 'Taille d\'un melon' },
-    { w: 40, m: '👶', d: 'Bébé est prêt à vous rencontrer !' },
+    { w: 4, label: '4 sem.', d: 'Taille d\'une graine de pavot' },
+    { w: 8, label: '8 sem.', d: 'Taille d\'une framboise' },
+    { w: 12, label: '12 sem.', d: 'Taille d\'un citron vert' },
+    { w: 16, label: '16 sem.', d: 'Taille d\'un avocat' },
+    { w: 20, label: '20 sem.', d: 'Taille d\'une banane' },
+    { w: 24, label: '24 sem.', d: 'Taille d\'un épi de maïs' },
+    { w: 28, label: '28 sem.', d: 'Taille d\'une aubergine' },
+    { w: 32, label: '32 sem.', d: 'Taille d\'une courge' },
+    { w: 36, label: '36 sem.', d: 'Taille d\'un melon' },
+    { w: 40, label: 'Terme', d: 'Bébé est prêt à vous rencontrer !' },
 ];
 
 /* ───────── Tabs definition ───────── */
@@ -41,6 +45,30 @@ const INTENSITY_LEVELS = [
     { value: 'intense', label: 'Intense', color: 'bg-red-100 text-red-700', dot: 'bg-red-400' },
 ];
 
+function formatShortDate(value) {
+    if (!value) return '—';
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return String(value);
+    return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function mapSymptomFromApi(symptom) {
+    const recordedAt = symptom.recorded_at || symptom.created_at;
+    const d = new Date(recordedAt);
+    return {
+        id: symptom.id,
+        name: symptom.name,
+        intensity: symptom.intensity,
+        notes: symptom.notes || '',
+        date: Number.isNaN(d.getTime())
+            ? '—'
+            : d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }),
+        time: Number.isNaN(d.getTime())
+            ? ''
+            : d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+    };
+}
+
 /* ════════════════════════════════════════════════════
    KICK COUNTER COMPONENT
    ════════════════════════════════════════════════════ */
@@ -51,6 +79,7 @@ function KickCounterTab({ pregnancyId }) {
     const [elapsed, setElapsed] = useState(0);
     const [history, setHistory] = useState([]);
     const [saving, setSaving] = useState(false);
+    const [sessionError, setSessionError] = useState('');
     const timerRef = useRef(null);
 
     useEffect(() => {
@@ -70,6 +99,7 @@ function KickCounterTab({ pregnancyId }) {
     }, [sessionActive, sessionStart]);
 
     const startSession = () => {
+        setSessionError('');
         setKicks(0);
         setElapsed(0);
         setSessionStart(Date.now());
@@ -85,6 +115,7 @@ function KickCounterTab({ pregnancyId }) {
         clearInterval(timerRef.current);
         if (!pregnancyId || kicks === 0) return;
         setSaving(true);
+        setSessionError('');
         const now = new Date();
         const startTime = new Date(sessionStart);
         const mins = Math.floor(elapsed / 60);
@@ -98,15 +129,21 @@ function KickCounterTab({ pregnancyId }) {
         try {
             const r = await window.axios.post(`/api/v1/pregnancies/${pregnancyId}/kicks`, {
                 date: now.toISOString().split('T')[0],
-                start_time: startTime.toTimeString().slice(0, 5),
-                end_time: now.toTimeString().slice(0, 5),
+                start_time: startTime.toTimeString().slice(0, 8),
+                end_time: now.toTimeString().slice(0, 8),
                 kicks_count: kicks,
                 time_to_10_kicks: timeTo10,
                 activity_level: kicks >= 10 ? 'high' : kicks >= 5 ? 'normal' : 'low',
             });
             const newEntry = r.data?.kick_counter || r.data;
             setHistory(prev => [newEntry, ...prev].slice(0, 10));
-        } catch (e) { console.error(e); }
+        } catch (e) {
+            const data = e.response?.data;
+            const validationMsg = data?.errors
+                ? Object.values(data.errors).flat().join(' ')
+                : null;
+            setSessionError(validationMsg || data?.message || 'Erreur lors de l\'enregistrement de la session.');
+        }
         setSaving(false);
     };
 
@@ -119,53 +156,59 @@ function KickCounterTab({ pregnancyId }) {
     return (
         <div className="space-y-6">
             {/* Main kick area */}
-            <div className="card text-center">
-                <div className="mb-2">
-                    <span className="text-6xl">👣</span>
+            <div className="glass-card text-center px-6 py-10 sm:py-12">
+                <div className="mb-2 flex justify-center">
+                    <Footprints size={48} className="text-brand-primary" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-1">Compteur de Mouvements</h3>
-                <p className="text-sm text-gray-500 mb-6">Suivez l'activité de votre bébé en comptant ses mouvements.</p>
+                <h3 className="text-xl font-bold text-brand-ink mb-1">Compteur de Mouvements</h3>
+                <p className="text-sm text-brand-muted mb-6">Suivez l'activité de votre bébé en comptant ses mouvements.</p>
 
                 {!sessionActive ? (
-                    <button onClick={startSession} className="btn-primary mx-auto flex items-center gap-2 text-lg px-8 py-4">
-                        <Activity size={20} /> Démarrer une session
-                    </button>
+                    <>
+                        {sessionError && (
+                            <div className="mb-4 p-3 rounded-xl text-sm border bg-red-50/80 border-red-200 text-red-800 flex items-start gap-2 max-w-md mx-auto text-left">
+                                <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+                                {sessionError}
+                            </div>
+                        )}
+                        <button onClick={startSession} className="btn-primary mx-auto flex items-center gap-2 text-lg px-8 py-4">
+                            <Activity size={20} /> Démarrer une session
+                        </button>
+                    </>
                 ) : (
                     <div className="space-y-6">
                         {/* Timer */}
                         <div className="flex items-center justify-center gap-6">
                             <div className="text-center">
-                                <p className="text-xs text-gray-400 font-medium uppercase tracking-wider mb-1">Durée</p>
-                                <p className="text-3xl font-mono font-bold text-gray-900">{formatTime(elapsed)}</p>
+                                <p className="text-xs text-brand-muted font-medium uppercase tracking-wider mb-1">Durée</p>
+                                <p className="text-3xl font-mono font-bold text-brand-ink">{formatTime(elapsed)}</p>
                             </div>
-                            <div className="w-px h-12 bg-gray-200"></div>
+                            <div className="w-px h-12 bg-brand-border"></div>
                             <div className="text-center">
-                                <p className="text-xs text-gray-400 font-medium uppercase tracking-wider mb-1">Coups</p>
-                                <p className="text-5xl font-black text-pink-600">{kicks}</p>
+                                <p className="text-xs text-brand-muted font-medium uppercase tracking-wider mb-1">Coups</p>
+                                <p className="text-5xl font-black text-brand-primary">{kicks}</p>
                             </div>
                         </div>
 
                         {/* Kick button */}
                         <button
                             onClick={recordKick}
-                            className="w-28 h-28 mx-auto rounded-full flex items-center justify-center text-white text-4xl font-bold transition-all duration-150 active:scale-90 shadow-lg hover:shadow-xl"
-                            style={{ background: 'linear-gradient(135deg, #f472b6, #fb7185)' }}
+                            className="w-28 h-28 mx-auto rounded-full flex items-center justify-center text-3xl font-bold transition-all duration-300 active:scale-95 border-2 border-brand-primary bg-brand-bg text-brand-primary hover:bg-brand-soft"
                         >
                             +1
                         </button>
-                        <p className="text-gray-400 text-xs">Appuyez à chaque mouvement ressenti</p>
+                        <p className="text-brand-muted text-xs">Appuyez à chaque mouvement ressenti</p>
 
-                        {/* 10 kicks indicator */}
                         {kicks >= 10 && (
                             <div className="flex items-center justify-center gap-2 text-green-600 bg-green-50 rounded-xl p-3">
                                 <CheckCircle size={18} />
-                                <span className="font-semibold text-sm">10 mouvements atteints ! Très bon signe ✨</span>
+                                <span className="font-semibold text-sm">10 mouvements atteints — très bon signe</span>
                             </div>
                         )}
 
                         <button onClick={endSession} disabled={saving}
                             className="text-sm font-semibold text-red-500 hover:text-red-700 transition-colors flex items-center gap-1 mx-auto">
-                            {saving ? 'Enregistrement...' : '⏹ Terminer et enregistrer'}
+                            <Square size={14} /> {saving ? 'Enregistrement...' : 'Terminer et enregistrer'}
                         </button>
                     </div>
                 )}
@@ -173,16 +216,16 @@ function KickCounterTab({ pregnancyId }) {
 
             {/* History */}
             {history.length > 0 && (
-                <div className="card">
-                    <h4 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                        <Clock size={16} className="text-pink-500" /> Historique récent
+                <div className="glass-card">
+                    <h4 className="font-bold text-brand-ink mb-4 flex items-center gap-2">
+                        <Clock size={16} className="text-brand-primary" /> Historique récent
                     </h4>
                     <div className="space-y-2">
                         {history.map((h, i) => (
-                            <div key={h.id || i} className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100">
+                            <div key={h.id || i} className="flex items-center justify-between p-3 rounded-xl bg-brand-soft border border-brand-border">
                                 <div>
-                                    <p className="font-semibold text-gray-800 text-sm">{h.kicks_count} mouvement{h.kicks_count > 1 ? 's' : ''}</p>
-                                    <p className="text-xs text-gray-400">{h.date} · {h.start_time} - {h.end_time || '?'}</p>
+                                    <p className="font-semibold text-brand-ink text-sm">{h.kicks_count} mouvement{h.kicks_count > 1 ? 's' : ''}</p>
+                                    <p className="text-xs text-brand-muted">{h.date} · {h.start_time} - {h.end_time || '?'}</p>
                                 </div>
                                 <span className={`px-2 py-1 rounded-lg text-xs font-bold ${h.activity_level === 'high' ? 'bg-green-100 text-green-700' : h.activity_level === 'normal' ? 'bg-yellow-100 text-yellow-700' : 'bg-orange-100 text-orange-700'}`}>
                                     {h.activity_level === 'high' ? 'Élevé' : h.activity_level === 'normal' ? 'Normal' : 'Faible'}
@@ -194,14 +237,16 @@ function KickCounterTab({ pregnancyId }) {
             )}
 
             {/* Tips */}
-            <div className="card" style={{ background: 'linear-gradient(135deg, #fdf2f8, #fff5f5)' }}>
-                <h4 className="font-bold text-gray-800 mb-3">💡 Conseils</h4>
-                <ul className="space-y-2 text-sm text-gray-600">
-                    <li className="flex items-start gap-2"><span className="text-pink-400 mt-0.5">•</span> Comptez les mouvements à la même heure chaque jour</li>
-                    <li className="flex items-start gap-2"><span className="text-pink-400 mt-0.5">•</span> 10 mouvements en 2 heures est un bon objectif</li>
-                    <li className="flex items-start gap-2"><span className="text-pink-400 mt-0.5">•</span> Consultez si vous remarquez une baisse significative d'activité</li>
+            <GlassCard className="p-5">
+                <h4 className="font-bold text-brand-ink mb-3 flex items-center gap-2">
+                    <Lightbulb size={16} className="text-brand-primary" /> Conseils
+                </h4>
+                <ul className="space-y-2 text-sm text-brand-muted">
+                    <li className="flex items-start gap-2"><span className="text-brand-primary mt-0.5">•</span> Comptez les mouvements à la même heure chaque jour</li>
+                    <li className="flex items-start gap-2"><span className="text-brand-primary mt-0.5">•</span> 10 mouvements en 2 heures est un bon objectif</li>
+                    <li className="flex items-start gap-2"><span className="text-brand-primary mt-0.5">•</span> Consultez si vous remarquez une baisse significative d'activité</li>
                 </ul>
-            </div>
+            </GlassCard>
         </div>
     );
 }
@@ -287,10 +332,10 @@ function ContractionTimerTab({ pregnancyId }) {
     };
 
     const intensityOptions = [
-        { value: 'mild', label: 'Légère', emoji: '😊' },
-        { value: 'moderate', label: 'Modérée', emoji: '😐' },
-        { value: 'strong', label: 'Forte', emoji: '😣' },
-        { value: 'very strong', label: 'Très forte', emoji: '😰' },
+        { value: 'mild', label: 'Légère' },
+        { value: 'moderate', label: 'Modérée' },
+        { value: 'strong', label: 'Forte' },
+        { value: 'very strong', label: 'Très forte' },
     ];
 
     // Check if contractions suggest going to hospital
@@ -314,71 +359,78 @@ function ContractionTimerTab({ pregnancyId }) {
             )}
 
             {/* Timer card */}
-            <div className="card text-center">
-                <div className="mb-3">
-                    <span className="text-5xl">⏱️</span>
+            <div className="glass-card text-center px-6 py-10 sm:py-12">
+                <div className="mb-3 flex justify-center">
+                    <Timer size={40} className="text-brand-primary" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-1">Chronomètre de Contractions</h3>
-                <p className="text-sm text-gray-500 mb-6">Minutez la durée et la fréquence de vos contractions.</p>
+                <h3 className="text-xl font-bold text-brand-ink mb-1">Chronomètre de Contractions</h3>
+                <p className="text-sm text-brand-muted mb-6">Minutez la durée et la fréquence de vos contractions.</p>
 
                 {/* Timer display */}
                 <div className="mb-6">
-                    <div className={`inline-flex items-center justify-center w-36 h-36 rounded-full text-4xl font-mono font-bold transition-all duration-300 ${isTiming ? 'text-white shadow-xl scale-105' : 'text-gray-400 border-4 border-dashed border-gray-200'}`}
-                        style={isTiming ? { background: 'linear-gradient(135deg, #ef4444, #f87171)', animation: 'pulse 1.5s ease-in-out infinite' } : {}}>
+                    <div className={`inline-flex items-center justify-center w-36 h-36 rounded-full text-4xl font-mono font-bold transition-all duration-300 ${isTiming ? 'text-red-800 bg-red-50 border-2 border-red-300' : 'text-brand-muted border-4 border-dashed border-brand-border'}`}>
                         {fmtDuration(elapsed)}
                     </div>
                 </div>
 
-                {/* Intensity selector */}
                 <div className="mb-6">
-                    <p className="text-xs text-gray-400 font-medium uppercase tracking-wider mb-3">Intensité ressentie</p>
+                    <p className="text-xs text-brand-muted font-medium uppercase tracking-wider mb-3">Intensité ressentie</p>
                     <div className="flex justify-center gap-2 flex-wrap">
                         {intensityOptions.map(opt => (
-                            <button key={opt.value} onClick={() => setIntensity(opt.value)}
-                                className={`px-3 py-2 rounded-xl text-sm font-semibold transition-all border-2 ${intensity === opt.value ? 'border-pink-400 bg-pink-50 text-pink-700' : 'border-gray-100 text-gray-500 hover:border-gray-200'}`}>
-                                {opt.emoji} {opt.label}
+                            <button key={opt.value} type="button" onClick={() => setIntensity(opt.value)}
+                                className={`px-3 py-2 rounded-xl text-sm font-semibold transition-all border-2 ${intensity === opt.value ? 'border-brand-primary bg-brand-soft text-brand-primary' : 'border-brand-border text-brand-muted hover:border-brand-primary/40'}`}>
+                                {opt.label}
                             </button>
                         ))}
                     </div>
                 </div>
 
-                {/* Start/Stop button */}
                 <button
                     onClick={isTiming ? stopContraction : startContraction}
                     disabled={saving}
-                    className={`px-10 py-4 rounded-2xl font-bold text-lg text-white transition-all shadow-lg ${isTiming ? 'bg-red-500 hover:bg-red-600' : ''}`}
-                    style={!isTiming ? { background: 'linear-gradient(135deg, #f472b6, #fb7185)' } : {}}
+                    className={isTiming ? 'btn-secondary border-red-200 text-red-700 hover:bg-red-50 px-10 py-4 text-lg' : 'btn-primary px-10 py-4 text-lg'}
                 >
-                    {saving ? 'Enregistrement...' : isTiming ? '⏹ Arrêter' : '▶ Démarrer'}
+                    {saving ? 'Enregistrement...' : isTiming ? (
+                        <span className="flex items-center gap-2 justify-center"><Square size={18} /> Arrêter</span>
+                    ) : (
+                        <span className="flex items-center gap-2 justify-center"><Play size={18} /> Démarrer</span>
+                    )}
                 </button>
             </div>
 
             {/* History */}
             {contractions.length > 0 && (
-                <div className="card">
-                    <h4 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                        <Clock size={16} className="text-pink-500" /> Contractions enregistrées
-                    </h4>
+                <div className="table-shell">
+                    <div className="table-toolbar">
+                        <h4 className="font-bold text-brand-ink flex items-center gap-2 text-sm">
+                            <Clock size={16} className="text-brand-primary" /> Contractions enregistrées
+                        </h4>
+                    </div>
                     <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
+                        <table className="fs-table">
                             <thead>
-                                <tr className="text-left text-xs text-gray-400 uppercase tracking-wider">
-                                    <th className="pb-3 pr-2">Heure</th>
-                                    <th className="pb-3 pr-2">Durée</th>
-                                    <th className="pb-3 pr-2">Intervalle</th>
-                                    <th className="pb-3">Intensité</th>
+                                <tr>
+                                    <th>Heure</th>
+                                    <th>Durée</th>
+                                    <th>Intervalle</th>
+                                    <th>Intensité</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-50">
+                            <tbody>
                                 {contractions.map((c, i) => (
                                     <tr key={c.id || i}>
-                                        <td className="py-2.5 pr-2 text-gray-600">
-                                            {c.start_time ? new Date(c.start_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '-'}
+                                        <td className="text-brand-muted">
+                                            {c.start_time ? new Date(c.start_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '—'}
                                         </td>
-                                        <td className="py-2.5 pr-2 font-semibold text-gray-800">{fmtDuration(c.duration_seconds)}</td>
-                                        <td className="py-2.5 pr-2 text-gray-600">{fmtInterval(c.interval_seconds)}</td>
-                                        <td className="py-2.5">
-                                            <span className={`px-2 py-0.5 rounded-md text-xs font-bold ${c.intensity === 'very strong' ? 'bg-red-100 text-red-700' : c.intensity === 'strong' ? 'bg-orange-100 text-orange-700' : c.intensity === 'moderate' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>
+                                        <td className="font-semibold text-brand-ink">{fmtDuration(c.duration_seconds)}</td>
+                                        <td className="text-brand-muted">{fmtInterval(c.interval_seconds)}</td>
+                                        <td>
+                                            <span className={`status-badge ${
+                                                c.intensity === 'very strong' ? 'badge-cancelled'
+                                                    : c.intensity === 'strong' ? 'badge-pending'
+                                                    : c.intensity === 'moderate' ? 'badge-pending'
+                                                    : 'badge-confirmed'
+                                            }`}>
                                                 {c.intensity === 'very strong' ? 'Très forte' : c.intensity === 'strong' ? 'Forte' : c.intensity === 'moderate' ? 'Modérée' : 'Légère'}
                                             </span>
                                         </td>
@@ -391,15 +443,17 @@ function ContractionTimerTab({ pregnancyId }) {
             )}
 
             {/* When to call info */}
-            <div className="card" style={{ background: 'linear-gradient(135deg, #fef3c7, #fffbeb)' }}>
-                <h4 className="font-bold text-amber-900 mb-3">📞 Quand contacter la maternité ?</h4>
-                <ul className="space-y-2 text-sm text-amber-800">
-                    <li className="flex items-start gap-2"><span className="text-amber-500 mt-0.5">•</span> Contractions régulières toutes les 5 minutes pendant 1 heure</li>
-                    <li className="flex items-start gap-2"><span className="text-amber-500 mt-0.5">•</span> Durée des contractions d'environ 1 minute chacune</li>
-                    <li className="flex items-start gap-2"><span className="text-amber-500 mt-0.5">•</span> Intensité croissante qui ne diminue pas au repos</li>
-                    <li className="flex items-start gap-2"><span className="text-amber-500 mt-0.5">•</span> Perte des eaux ou saignements</li>
+            <GlassCard className="p-5 border-amber-200/60 bg-amber-50/30">
+                <h4 className="font-bold text-brand-ink mb-3 flex items-center gap-2">
+                    <Info size={16} className="text-brand-primary" /> Quand contacter la maternité ?
+                </h4>
+                <ul className="space-y-2 text-sm text-brand-muted">
+                    <li className="flex items-start gap-2"><span className="text-brand-primary mt-0.5">•</span> Contractions régulières toutes les 5 minutes pendant 1 heure</li>
+                    <li className="flex items-start gap-2"><span className="text-brand-primary mt-0.5">•</span> Durée des contractions d'environ 1 minute chacune</li>
+                    <li className="flex items-start gap-2"><span className="text-brand-primary mt-0.5">•</span> Intensité croissante qui ne diminue pas au repos</li>
+                    <li className="flex items-start gap-2"><span className="text-brand-primary mt-0.5">•</span> Perte des eaux ou saignements</li>
                 </ul>
-            </div>
+            </GlassCard>
         </div>
     );
 }
@@ -412,6 +466,7 @@ function WeightTrackerTab({ pregnancyId, currentWeek }) {
     const [showForm, setShowForm] = useState(false);
     const [form, setForm] = useState({ weight: '', notes: '' });
     const [saving, setSaving] = useState(false);
+    const [formError, setFormError] = useState('');
 
     useEffect(() => {
         if (!pregnancyId) return;
@@ -423,6 +478,7 @@ function WeightTrackerTab({ pregnancyId, currentWeek }) {
     const save = async () => {
         if (!form.weight || !pregnancyId) return;
         setSaving(true);
+        setFormError('');
         try {
             const r = await window.axios.post(`/api/v1/pregnancies/${pregnancyId}/weight-gains`, {
                 date: new Date().toISOString().split('T')[0],
@@ -435,9 +491,14 @@ function WeightTrackerTab({ pregnancyId, currentWeek }) {
             setForm({ weight: '', notes: '' });
             setShowForm(false);
         } catch (e) {
-            alert(e.response?.data?.message || 'Erreur lors de l\'enregistrement');
+            const data = e.response?.data;
+            const validationMsg = data?.errors
+                ? Object.values(data.errors).flat().join(' ')
+                : null;
+            setFormError(validationMsg || data?.message || 'Erreur lors de l\'enregistrement.');
+        } finally {
+            setSaving(false);
         }
-        setSaving(false);
     };
 
     const firstWeight = entries.length > 0 ? entries[entries.length - 1].weight : null;
@@ -452,40 +513,34 @@ function WeightTrackerTab({ pregnancyId, currentWeek }) {
     return (
         <div className="space-y-6">
             {/* Summary cards */}
-            <div className="grid grid-cols-3 gap-4">
-                <div className="card text-center">
-                    <p className="text-xs text-gray-400 font-medium uppercase tracking-wider mb-1">Poids initial</p>
-                    <p className="text-2xl font-bold text-gray-900">{firstWeight ? `${firstWeight}` : '-'}<span className="text-sm text-gray-400 ml-1">kg</span></p>
-                </div>
-                <div className="card text-center">
-                    <p className="text-xs text-gray-400 font-medium uppercase tracking-wider mb-1">Poids actuel</p>
-                    <p className="text-2xl font-bold text-gray-900">{lastWeight ? `${lastWeight}` : '-'}<span className="text-sm text-gray-400 ml-1">kg</span></p>
-                </div>
-                <div className="card text-center">
-                    <p className="text-xs text-gray-400 font-medium uppercase tracking-wider mb-1">Prise totale</p>
-                    <p className={`text-2xl font-bold ${gain && gain >= 0 ? 'text-pink-600' : 'text-gray-900'}`}>
-                        {gain ? `+${gain}` : '-'}<span className="text-sm text-gray-400 ml-1">kg</span>
-                    </p>
-                </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <StatTile label="Poids initial" value={firstWeight ?? '—'} sub="kg" icon={Scale} />
+                <StatTile label="Poids actuel" value={lastWeight ?? '—'} sub="kg" icon={Weight} />
+                <StatTile
+                    label="Prise totale"
+                    value={gain ? `+${gain}` : '—'}
+                    sub="kg depuis le début"
+                    icon={TrendingUp}
+                />
             </div>
 
             {/* Visual chart */}
             {entries.length > 1 && (
-                <div className="card">
-                    <h4 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                        <TrendingUp size={16} className="text-pink-500" /> Courbe de poids
+                <div className="glass-card p-5 sm:p-6">
+                    <h4 className="font-bold text-brand-ink mb-4 flex items-center gap-2">
+                        <TrendingUp size={16} className="text-brand-primary" /> Courbe de poids
                     </h4>
                     <div className="flex items-end gap-1 h-32">
                         {[...entries].reverse().map((e, i) => {
                             const height = ((e.weight - minWeight) / range) * 100;
                             return (
                                 <div key={e.id || i} className="flex-1 flex flex-col items-center gap-1" title={`${e.weight}kg — Sem. ${e.week}`}>
-                                    <span className="text-[10px] text-gray-400 font-medium">{e.weight}</span>
+                                    <span className="text-[10px] text-brand-muted font-medium">{e.weight}</span>
                                     <div className="w-full rounded-t-lg transition-all duration-300" style={{
                                         height: `${Math.max(8, height)}%`,
-                                        background: `linear-gradient(180deg, #f472b6 0%, #fbcfe8 100%)`,
+                                        background: 'var(--fs-primary, #853953)',
                                     }}></div>
-                                    <span className="text-[10px] text-gray-400">S{e.week}</span>
+                                    <span className="text-[10px] text-brand-muted">S{e.week}</span>
                                 </div>
                             );
                         })}
@@ -495,21 +550,34 @@ function WeightTrackerTab({ pregnancyId, currentWeek }) {
 
             {/* Add weight form */}
             {!showForm ? (
-                <button onClick={() => setShowForm(true)} className="btn-primary flex items-center gap-2">
-                    <Plus size={18} /> Ajouter une pesée
-                </button>
+                <div key="weight-add" className="fs-reveal py-1">
+                    <button
+                        type="button"
+                        onClick={() => setShowForm(true)}
+                        className="btn-primary flex items-center gap-2 group"
+                    >
+                        <Plus size={18} className="transition-transform duration-300 group-hover:rotate-90" />
+                        Ajouter une pesée
+                    </button>
+                </div>
             ) : (
-                <div className="card">
-                    <h4 className="font-bold text-gray-900 mb-4">Nouvelle pesée</h4>
+                <div key="weight-form" className="glass-card fs-reveal p-5 sm:p-6">
+                    <h4 className="font-bold text-brand-ink mb-4">Nouvelle pesée</h4>
+                    {formError && (
+                        <div className="mb-4 p-3 rounded-xl text-sm border bg-red-50/80 border-red-200 text-red-800 flex items-start gap-2">
+                            <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+                            {formError}
+                        </div>
+                    )}
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">Poids (kg)</label>
+                            <label className="block text-sm font-semibold text-brand-ink mb-2">Poids (kg)</label>
                             <input type="number" step="0.1" min="20" max="250" value={form.weight}
                                 onChange={e => setForm({ ...form, weight: e.target.value })}
                                 placeholder="Ex: 65.5" className="input-field" />
                         </div>
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">Notes (optionnel)</label>
+                            <label className="block text-sm font-semibold text-brand-ink mb-2">Notes (optionnel)</label>
                             <input type="text" value={form.notes}
                                 onChange={e => setForm({ ...form, notes: e.target.value })}
                                 placeholder="Ex: après le petit-déjeuner" className="input-field" />
@@ -518,7 +586,7 @@ function WeightTrackerTab({ pregnancyId, currentWeek }) {
                             <button onClick={save} disabled={saving || !form.weight} className="btn-primary flex-1">
                                 {saving ? 'Enregistrement...' : 'Enregistrer'}
                             </button>
-                            <button onClick={() => setShowForm(false)} className="flex-1 border-2 border-gray-200 text-gray-600 font-semibold rounded-xl px-4 py-3 hover:bg-gray-50 transition-all">
+                            <button type="button" onClick={() => setShowForm(false)} className="flex-1 btn-secondary">
                                 Annuler
                             </button>
                         </div>
@@ -528,19 +596,19 @@ function WeightTrackerTab({ pregnancyId, currentWeek }) {
 
             {/* History */}
             {entries.length > 0 && (
-                <div className="card">
-                    <h4 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                        <Clock size={16} className="text-pink-500" /> Historique des pesées
+                <div className="glass-card p-5 sm:p-6">
+                    <h4 className="font-bold text-brand-ink mb-4 flex items-center gap-2">
+                        <Clock size={16} className="text-brand-primary" /> Historique des pesées
                     </h4>
                     <div className="space-y-2">
                         {entries.map((e, i) => (
-                            <div key={e.id || i} className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100">
+                            <div key={e.id || i} className="flex items-center justify-between p-3 rounded-xl bg-brand-bg/60 border border-brand-border">
                                 <div>
-                                    <p className="font-semibold text-gray-800">{e.weight} kg</p>
-                                    <p className="text-xs text-gray-400">Semaine {e.week} · {e.date}</p>
+                                    <p className="font-semibold text-brand-ink">{e.weight} kg</p>
+                                    <p className="text-xs text-brand-muted">Semaine {e.week} · {formatShortDate(e.date)}</p>
                                 </div>
                                 {i < entries.length - 1 && (
-                                    <span className={`text-xs font-bold ${(e.weight - entries[i + 1].weight) >= 0 ? 'text-pink-500' : 'text-green-500'}`}>
+                                    <span className={`text-xs font-bold ${(e.weight - entries[i + 1].weight) >= 0 ? 'text-brand-primary' : 'text-green-500'}`}>
                                         {(e.weight - entries[i + 1].weight) >= 0 ? '+' : ''}{(e.weight - entries[i + 1].weight).toFixed(1)} kg
                                     </span>
                                 )}
@@ -551,23 +619,25 @@ function WeightTrackerTab({ pregnancyId, currentWeek }) {
             )}
 
             {/* Recommended gain info */}
-            <div className="card" style={{ background: 'linear-gradient(135deg, #f0fdf4, #f0fdf9)' }}>
-                <h4 className="font-bold text-emerald-900 mb-3">📊 Prise de poids recommandée</h4>
+            <GlassCard className="p-5">
+                <h4 className="font-bold text-brand-ink mb-3 flex items-center gap-2">
+                    <Scale size={16} className="text-brand-primary" /> Prise de poids recommandée
+                </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
-                    <div className="bg-white/70 p-3 rounded-xl">
-                        <p className="text-xs text-gray-400 mb-1">IMC {"<"} 18.5</p>
-                        <p className="font-bold text-emerald-700">12.5 - 18 kg</p>
+                    <div className="p-3 rounded-xl bg-brand-bg/80 border border-brand-border">
+                        <p className="text-xs text-brand-muted mb-1">IMC {"<"} 18.5</p>
+                        <p className="font-bold text-brand-ink">12.5 - 18 kg</p>
                     </div>
-                    <div className="bg-white/70 p-3 rounded-xl">
-                        <p className="text-xs text-gray-400 mb-1">IMC 18.5 - 24.9</p>
-                        <p className="font-bold text-emerald-700">11.5 - 16 kg</p>
+                    <div className="p-3 rounded-xl bg-brand-bg/80 border border-brand-border">
+                        <p className="text-xs text-brand-muted mb-1">IMC 18.5 - 24.9</p>
+                        <p className="font-bold text-brand-ink">11.5 - 16 kg</p>
                     </div>
-                    <div className="bg-white/70 p-3 rounded-xl">
-                        <p className="text-xs text-gray-400 mb-1">IMC ≥ 25</p>
-                        <p className="font-bold text-emerald-700">7 - 11.5 kg</p>
+                    <div className="p-3 rounded-xl bg-brand-bg/80 border border-brand-border">
+                        <p className="text-xs text-brand-muted mb-1">IMC ≥ 25</p>
+                        <p className="font-bold text-brand-ink">7 - 11.5 kg</p>
                     </div>
                 </div>
-            </div>
+            </GlassCard>
         </div>
     );
 }
@@ -575,32 +645,56 @@ function WeightTrackerTab({ pregnancyId, currentWeek }) {
 /* ════════════════════════════════════════════════════
    PREGNANCY SYMPTOMS COMPONENT
    ════════════════════════════════════════════════════ */
-function PregnancySymptomsTab() {
+function PregnancySymptomsTab({ pregnancyId }) {
     const [symptoms, setSymptoms] = useState([]);
     const [showForm, setShowForm] = useState(false);
     const [selectedSymptom, setSelectedSymptom] = useState('');
     const [selectedIntensity, setSelectedIntensity] = useState('modéré');
     const [notes, setNotes] = useState('');
+    const [saving, setSaving] = useState(false);
+    const [formError, setFormError] = useState('');
 
-    const addSymptom = () => {
-        if (!selectedSymptom) return;
-        const newSymptom = {
-            id: Date.now(),
-            name: selectedSymptom,
-            intensity: selectedIntensity,
-            notes: notes,
-            date: new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }),
-            time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
-        };
-        setSymptoms(prev => [newSymptom, ...prev]);
-        setSelectedSymptom('');
-        setSelectedIntensity('modéré');
-        setNotes('');
-        setShowForm(false);
+    useEffect(() => {
+        if (!pregnancyId) return;
+        window.axios.get(`/api/v1/pregnancies/${pregnancyId}/symptoms`)
+            .then(r => setSymptoms(Array.isArray(r.data) ? r.data.map(mapSymptomFromApi) : []))
+            .catch(() => {});
+    }, [pregnancyId]);
+
+    const addSymptom = async () => {
+        if (!selectedSymptom || !pregnancyId) return;
+        setSaving(true);
+        setFormError('');
+        try {
+            const r = await window.axios.post(`/api/v1/pregnancies/${pregnancyId}/symptoms`, {
+                name: selectedSymptom,
+                intensity: selectedIntensity,
+                notes: notes || null,
+            });
+            const saved = r.data?.symptom || r.data;
+            setSymptoms(prev => [mapSymptomFromApi(saved), ...prev]);
+            setSelectedSymptom('');
+            setSelectedIntensity('modéré');
+            setNotes('');
+            setShowForm(false);
+        } catch (e) {
+            const data = e.response?.data;
+            const validationMsg = data?.errors
+                ? Object.values(data.errors).flat().join(' ')
+                : null;
+            setFormError(validationMsg || data?.message || 'Erreur lors de l\'enregistrement.');
+        } finally {
+            setSaving(false);
+        }
     };
 
-    const removeSymptom = (id) => {
-        setSymptoms(prev => prev.filter(s => s.id !== id));
+    const removeSymptom = async (id) => {
+        try {
+            await window.axios.delete(`/api/v1/pregnancy-symptoms/${id}`);
+            setSymptoms(prev => prev.filter(s => s.id !== id));
+        } catch {
+            // keep list unchanged on failure
+        }
     };
 
     const getIntensityStyle = (intensity) => {
@@ -618,12 +712,12 @@ function PregnancySymptomsTab() {
         <div className="space-y-6">
             {/* Quick stats */}
             {topSymptoms.length > 0 && (
-                <div className="card">
-                    <h4 className="font-bold text-gray-900 mb-4">Symptômes les plus fréquents</h4>
+                <div className="glass-card p-5 sm:p-6">
+                    <h4 className="font-bold text-brand-ink mb-4">Symptômes les plus fréquents</h4>
                     <div className="flex flex-wrap gap-2">
                         {topSymptoms.map(([name, count]) => (
-                            <span key={name} className="px-3 py-1.5 rounded-full bg-pink-50 border border-pink-100 text-sm font-medium text-pink-700">
-                                {name} <span className="text-pink-400 ml-1">×{count}</span>
+                            <span key={name} className="px-3 py-1.5 rounded-full bg-brand-soft border border-brand-border text-sm font-medium text-brand-primary">
+                                {name} <span className="text-brand-primary/70 ml-1">×{count}</span>
                             </span>
                         ))}
                     </div>
@@ -632,25 +726,38 @@ function PregnancySymptomsTab() {
 
             {/* Add symptom button/form */}
             {!showForm ? (
-                <button onClick={() => setShowForm(true)} className="btn-primary flex items-center gap-2">
-                    <Plus size={18} /> Saisir un symptôme
-                </button>
+                <div key="symptom-add" className="fs-reveal py-1">
+                    <button
+                        type="button"
+                        onClick={() => setShowForm(true)}
+                        className="btn-primary flex items-center gap-2 group"
+                    >
+                        <Plus size={18} className="transition-transform duration-300 group-hover:rotate-90" />
+                        Saisir un symptôme
+                    </button>
+                </div>
             ) : (
-                <div className="card">
+                <div key="symptom-form" className="glass-card fs-reveal p-5 sm:p-6">
                     <div className="flex justify-between items-center mb-4">
-                        <h4 className="font-bold text-gray-900">Nouveau symptôme</h4>
-                        <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600">
+                        <h4 className="font-bold text-brand-ink">Nouveau symptôme</h4>
+                        <button onClick={() => setShowForm(false)} className="text-brand-muted hover:text-brand-muted">
                             <X size={18} />
                         </button>
                     </div>
                     <div className="space-y-4">
+                        {formError && (
+                            <div className="p-3 rounded-xl text-sm border bg-red-50/80 border-red-200 text-red-800 flex items-start gap-2">
+                                <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+                                {formError}
+                            </div>
+                        )}
                         {/* Symptom selector */}
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">Type de symptôme</label>
+                            <label className="block text-sm font-semibold text-brand-ink mb-2">Type de symptôme</label>
                             <div className="flex flex-wrap gap-2">
                                 {SYMPTOM_LIST.map(s => (
                                     <button key={s} onClick={() => setSelectedSymptom(s)}
-                                        className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-all border-2 ${selectedSymptom === s ? 'border-pink-400 bg-pink-50 text-pink-700' : 'border-gray-100 text-gray-500 hover:border-gray-200 bg-white'}`}>
+                                        className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-all border-2 ${selectedSymptom === s ? 'border-brand-primary bg-brand-soft text-brand-primary' : 'border-brand-border text-brand-muted hover:border-brand-primary/30 bg-white'}`}>
                                         {s}
                                     </button>
                                 ))}
@@ -659,11 +766,11 @@ function PregnancySymptomsTab() {
 
                         {/* Intensity */}
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">Intensité</label>
+                            <label className="block text-sm font-semibold text-brand-ink mb-2">Intensité</label>
                             <div className="flex gap-2">
                                 {INTENSITY_LEVELS.map(level => (
                                     <button key={level.value} onClick={() => setSelectedIntensity(level.value)}
-                                        className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all border-2 ${selectedIntensity === level.value ? 'border-pink-400 ' + level.color : 'border-gray-100 text-gray-400 bg-white hover:border-gray-200'}`}>
+                                        className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all border-2 ${selectedIntensity === level.value ? 'border-brand-primary ' + level.color : 'border-brand-border text-brand-muted bg-white hover:border-brand-primary/30'}`}>
                                         {level.label}
                                     </button>
                                 ))}
@@ -672,14 +779,14 @@ function PregnancySymptomsTab() {
 
                         {/* Notes */}
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">Notes (optionnel)</label>
+                            <label className="block text-sm font-semibold text-brand-ink mb-2">Notes (optionnel)</label>
                             <input type="text" value={notes} onChange={e => setNotes(e.target.value)}
                                 placeholder="Détails supplémentaires..." className="input-field" />
                         </div>
 
-                        <button onClick={addSymptom} disabled={!selectedSymptom}
+                        <button onClick={addSymptom} disabled={!selectedSymptom || saving}
                             className="btn-primary w-full disabled:opacity-50">
-                            Enregistrer le symptôme
+                            {saving ? 'Enregistrement...' : 'Enregistrer le symptôme'}
                         </button>
                     </div>
                 </div>
@@ -687,20 +794,20 @@ function PregnancySymptomsTab() {
 
             {/* Symptoms log */}
             {symptoms.length > 0 && (
-                <div className="card">
-                    <h4 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                        <Clock size={16} className="text-pink-500" /> Journal des symptômes
+                <div className="glass-card p-5 sm:p-6">
+                    <h4 className="font-bold text-brand-ink mb-4 flex items-center gap-2">
+                        <Clock size={16} className="text-brand-primary" /> Journal des symptômes
                     </h4>
                     <div className="space-y-2">
                         {symptoms.map((s) => {
                             const style = getIntensityStyle(s.intensity);
                             return (
-                                <div key={s.id} className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100 group">
+                                <div key={s.id} className="flex items-center justify-between p-3 rounded-xl bg-brand-bg/60 border border-brand-border group">
                                     <div className="flex items-center gap-3">
                                         <div className={`w-2.5 h-2.5 rounded-full ${style.dot}`}></div>
                                         <div>
-                                            <p className="font-semibold text-gray-800 text-sm">{s.name}</p>
-                                            <p className="text-xs text-gray-400">{s.date} à {s.time}{s.notes ? ` · ${s.notes}` : ''}</p>
+                                            <p className="font-semibold text-brand-ink text-sm">{s.name}</p>
+                                            <p className="text-xs text-brand-muted">{s.date} à {s.time}{s.notes ? ` · ${s.notes}` : ''}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
@@ -708,7 +815,7 @@ function PregnancySymptomsTab() {
                                             {style.label}
                                         </span>
                                         <button onClick={() => removeSymptom(s.id)}
-                                            className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-400 transition-all">
+                                            className="opacity-0 group-hover:opacity-100 text-brand-muted hover:text-red-500 transition-all">
                                             <Trash2 size={14} />
                                         </button>
                                     </div>
@@ -721,31 +828,33 @@ function PregnancySymptomsTab() {
 
             {/* No symptoms */}
             {symptoms.length === 0 && !showForm && (
-                <div className="card text-center py-12">
-                    <span className="text-5xl mb-4 block">📋</span>
-                    <h4 className="font-bold text-gray-800 mb-2">Aucun symptôme enregistré</h4>
-                    <p className="text-sm text-gray-500">Ajoutez vos symptômes pour en garder une trace et les partager avec votre médecin.</p>
+                <div className="glass-card text-center px-6 py-12">
+                    <ClipboardList size={48} className="text-brand-border mx-auto mb-4" />
+                    <h4 className="font-bold text-brand-ink mb-2">Aucun symptôme enregistré</h4>
+                    <p className="text-sm text-brand-muted">Ajoutez vos symptômes pour en garder une trace et les partager avec votre médecin.</p>
                 </div>
             )}
 
             {/* Common symptoms info */}
-            <div className="card" style={{ background: 'linear-gradient(135deg, #eff6ff, #f0f9ff)' }}>
-                <h4 className="font-bold text-blue-900 mb-3">ℹ️ Symptômes courants par trimestre</h4>
+            <GlassCard className="p-5">
+                <h4 className="font-bold text-brand-ink mb-3 flex items-center gap-2">
+                    <Info size={16} className="text-brand-primary" /> Symptômes courants par trimestre
+                </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
-                    <div className="bg-white/70 p-3 rounded-xl">
-                        <p className="font-bold text-blue-700 mb-1">1er trimestre</p>
-                        <p className="text-blue-600/70 text-xs">Nausées, fatigue, sensibilité des seins</p>
+                    <div className="p-3 rounded-xl bg-brand-bg/80 border border-brand-border">
+                        <p className="font-bold text-brand-ink mb-1">1er trimestre</p>
+                        <p className="text-brand-muted text-xs">Nausées, fatigue, sensibilité des seins</p>
                     </div>
-                    <div className="bg-white/70 p-3 rounded-xl">
-                        <p className="font-bold text-blue-700 mb-1">2ème trimestre</p>
-                        <p className="text-blue-600/70 text-xs">Maux de dos, brûlures d'estomac, crampes</p>
+                    <div className="p-3 rounded-xl bg-brand-bg/80 border border-brand-border">
+                        <p className="font-bold text-brand-ink mb-1">2ème trimestre</p>
+                        <p className="text-brand-muted text-xs">Maux de dos, brûlures d'estomac, crampes</p>
                     </div>
-                    <div className="bg-white/70 p-3 rounded-xl">
-                        <p className="font-bold text-blue-700 mb-1">3ème trimestre</p>
-                        <p className="text-blue-600/70 text-xs">Insomnie, essoufflement, gonflements</p>
+                    <div className="p-3 rounded-xl bg-brand-bg/80 border border-brand-border">
+                        <p className="font-bold text-brand-ink mb-1">3ème trimestre</p>
+                        <p className="text-brand-muted text-xs">Insomnie, essoufflement, gonflements</p>
                     </div>
                 </div>
-            </div>
+            </GlassCard>
         </div>
     );
 }
@@ -760,6 +869,8 @@ export default function Pregnancies() {
     const [showForm, setShowForm] = useState(false);
     const [form, setForm] = useState({ start_date: '', due_date: '', pregnancy_type: 'simple', notes: '' });
     const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [formError, setFormError] = useState('');
     const [activeTab, setActiveTab] = useState('dashboard');
 
     useEffect(() => {
@@ -775,14 +886,30 @@ export default function Pregnancies() {
     const progress = Math.min(100, (currentWeek / 40) * 100);
 
     const save = async () => {
+        setSaving(true);
+        setFormError('');
         try {
             const r = await window.axios.post('/api/v1/pregnancies', form);
             const pregnancy = r.data?.pregnancy || r.data;
             setPreg([pregnancy, ...preg]);
             setActive(pregnancy);
             setShowForm(false);
-        } catch (e) { alert(e.response?.data?.message || 'Erreur'); }
+        } catch (e) {
+            setFormError(e.response?.data?.message || 'Erreur lors de l\'enregistrement.');
+        } finally {
+            setSaving(false);
+        }
     };
+
+    const pregnancyTypeLabel =
+        active?.pregnancy_type === 'twins'
+            ? 'Jumeaux'
+            : active?.pregnancy_type === 'triplets'
+              ? 'Triplés'
+              : 'Simple';
+
+    const trimesterLabel =
+        currentWeek <= 12 ? '1er' : currentWeek <= 26 ? '2ème' : '3ème';
 
     const trimesters = [
         { n: '1er Trimestre', w: '1-12 semaines', done: currentWeek >= 12 },
@@ -791,176 +918,247 @@ export default function Pregnancies() {
     ];
 
     return (
-        <AppLayout title='Suivi de grossesse'>
+        <AppLayout title="Suivi de grossesse">
+            <Head title="Suivi de grossesse - FeminaSante" />
+
+            <p className="text-brand-muted text-sm mb-6">
+                Suivez votre grossesse semaine par semaine — bébé, symptômes, poids et rendez-vous.
+            </p>
+
             {loading && (
-                <div className='flex items-center justify-center h-64'>
-                    <div className='w-10 h-10 border-4 border-pink-400 border-t-transparent rounded-full animate-spin'></div>
+                <div className="space-y-6">
+                    <GlassCard className="h-40 animate-pulse" />
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                        {[...Array(4)].map((_, i) => (
+                            <div key={i} className="glass-card h-[118px] animate-pulse" />
+                        ))}
+                    </div>
+                    <GlassCard className="h-14 animate-pulse" />
+                    <GlassCard className="h-64 animate-pulse" />
                 </div>
             )}
 
             {/* ── No pregnancy yet ── */}
             {!loading && !active && !showForm && (
-                <div className='text-center py-20 card max-w-lg mx-auto'>
-                    <div className='text-7xl mb-6'>👶</div>
-                    <h2 className='text-2xl font-extrabold text-gray-900 mb-3'>Commencer le suivi de votre grossesse</h2>
-                    <p className='text-gray-500 mb-8 leading-relaxed'>Suivez la croissance de votre bébé semaine par semaine, enregistrez les contrôles, surveillez les symptômes et restez informée tout au long de votre parcours.</p>
-                    <button onClick={() => setShowForm(true)} className='btn-primary flex items-center gap-2 mx-auto'>
-                        <Plus size={18} /> Commencer le suivi
-                    </button>
-                </div>
+                <GlassCard className="p-8 sm:p-10 w-full">
+                    <div className="flex flex-col lg:flex-row lg:items-center gap-8 lg:gap-12">
+                        <div className="flex-1 min-w-0">
+                            <div className="flex items-start gap-4 mb-6">
+                                <div className="w-14 h-14 rounded-2xl bg-brand-bg border border-brand-border flex items-center justify-center text-brand-primary shrink-0">
+                                    <Baby size={28} />
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl font-bold text-brand-ink mb-2">
+                                        Commencer le suivi de votre grossesse
+                                    </h2>
+                                    <p className="text-brand-muted text-sm leading-relaxed">
+                                        Suivez la croissance de votre bébé semaine par semaine, enregistrez les
+                                        contrôles et surveillez vos symptômes.
+                                    </p>
+                                </div>
+                            </div>
+                            <ul className="grid sm:grid-cols-2 gap-3 text-sm text-brand-muted">
+                                {[
+                                    'Calendrier semaine par semaine',
+                                    'Compteur de coups de pied',
+                                    'Chronomètre de contractions',
+                                    'Suivi du poids & rendez-vous',
+                                ].map((item) => (
+                                    <li key={item} className="flex items-center gap-2">
+                                        <CheckCircle size={14} className="text-brand-primary shrink-0" />
+                                        {item}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                        <div className="lg:w-72 shrink-0 flex flex-col items-stretch lg:items-end gap-3">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowForm(true);
+                                    setFormError('');
+                                }}
+                                className="btn-primary inline-flex items-center justify-center gap-2 py-3"
+                            >
+                                <Plus size={18} /> Commencer le suivi
+                            </button>
+                            <p className="text-xs text-brand-muted text-center lg:text-right">
+                                Quelques informations suffisent pour démarrer.
+                            </p>
+                        </div>
+                    </div>
+                </GlassCard>
             )}
 
             {/* ── Create form ── */}
             {!loading && showForm && (
-                <div className='max-w-lg mx-auto bg-white rounded-2xl border border-slate-200 shadow-sm p-6'>
-                    <h3 className='text-xl font-bold text-slate-900 mb-6'>Nouvelle grossesse</h3>
-                    <div className='space-y-4'>
+                <GlassCard className="p-6 sm:p-8 w-full">
+                    <h3 className="text-xl font-bold text-brand-ink mb-2">Nouvelle grossesse</h3>
+                    <p className="text-sm text-brand-muted mb-6">
+                        Indiquez la date de vos dernières règles pour calculer automatiquement la semaine de
+                        grossesse.
+                    </p>
+                    {formError && (
+                        <div className="mb-4 p-3 rounded-xl text-sm border bg-red-50/80 border-red-200 text-red-800 flex items-start gap-2">
+                            <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+                            {formError}
+                        </div>
+                    )}
+                    <div className="grid lg:grid-cols-2 gap-5">
                         <div>
-                            <label className='block text-sm font-semibold text-slate-700 mb-2'>Date des dernières règles</label>
-                            <input type='date' value={form.start_date} onChange={e => setForm({ ...form, start_date: e.target.value })} className='w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none transition-all' />
+                            <label className="block text-sm font-semibold text-brand-ink mb-2">
+                                Date des dernières règles
+                            </label>
+                            <input
+                                type="date"
+                                value={form.start_date}
+                                onChange={(e) => setForm({ ...form, start_date: e.target.value })}
+                                className="input-field"
+                            />
                         </div>
                         <div>
-                            <label className='block text-sm font-semibold text-slate-700 mb-2'>Date d'accouchement prévue (optionnel)</label>
-                            <input type='date' value={form.due_date} onChange={e => setForm({ ...form, due_date: e.target.value })} className='w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none transition-all' />
+                            <label className="block text-sm font-semibold text-brand-ink mb-2">
+                                Date d&apos;accouchement prévue (optionnel)
+                            </label>
+                            <input
+                                type="date"
+                                value={form.due_date}
+                                onChange={(e) => setForm({ ...form, due_date: e.target.value })}
+                                className="input-field"
+                            />
                         </div>
                         <div>
-                            <label className='block text-sm font-semibold text-slate-700 mb-2'>Type de grossesse</label>
-                            <select value={form.pregnancy_type} onChange={e => setForm({ ...form, pregnancy_type: e.target.value })} className='w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none transition-all'>
-                                <option value='simple'>Simple</option>
-                                <option value='twins'>Jumeaux</option>
-                                <option value='triplets'>Triplés</option>
+                            <label className="block text-sm font-semibold text-brand-ink mb-2">
+                                Type de grossesse
+                            </label>
+                            <select
+                                value={form.pregnancy_type}
+                                onChange={(e) => setForm({ ...form, pregnancy_type: e.target.value })}
+                                className="input-field"
+                            >
+                                <option value="simple">Simple</option>
+                                <option value="twins">Jumeaux</option>
+                                <option value="triplets">Triplés</option>
                             </select>
                         </div>
-                        <div>
-                            <label className='block text-sm font-semibold text-slate-700 mb-2'>Notes</label>
-                            <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} rows={3} className='w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none transition-all resize-none' />
+                        <div className="lg:col-span-2">
+                            <label className="block text-sm font-semibold text-brand-ink mb-2">Notes</label>
+                            <textarea
+                                value={form.notes}
+                                onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                                rows={3}
+                                placeholder="Informations utiles pour votre suivi…"
+                                className="input-field resize-none"
+                            />
                         </div>
-                        <div className='flex gap-3'>
-                            <button onClick={save} className='flex-1 px-5 py-3 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 text-white font-semibold hover:from-rose-600 hover:to-rose-700 transition-all shadow-sm'>Commencer</button>
-                            <button onClick={() => setShowForm(false)} className='flex-1 px-5 py-3 rounded-xl border-2 border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 transition-all'>Annuler</button>
+                        <div className="lg:col-span-2 flex flex-col sm:flex-row gap-3 pt-2">
+                            <button
+                                type="button"
+                                onClick={save}
+                                disabled={saving}
+                                className="sm:flex-1 btn-primary"
+                            >
+                                {saving ? 'Enregistrement…' : 'Commencer'}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowForm(false);
+                                    setFormError('');
+                                }}
+                                className="sm:flex-1 btn-secondary"
+                            >
+                                Annuler
+                            </button>
                         </div>
                     </div>
-                </div>
+                </GlassCard>
             )}
 
             {/* ── Active pregnancy ── */}
             {!loading && active && (
-                <div className='space-y-6'>
-                    {/* Main tracker card */}
-                    <div className='rounded-2xl p-6 text-white relative overflow-hidden' style={{ background: 'linear-gradient(135deg,#f472b6,#fb7185)' }}>
-                        <div className='absolute inset-0 opacity-10' style={{ backgroundImage: 'radial-gradient(circle at 80% 20%, white 0%, transparent 60%)' }}></div>
-                        <div className='relative z-10 grid md:grid-cols-2 gap-6 items-center'>
-                            <div>
-                                <div className='text-6xl mb-4 text-center'>{weekInfo.m}</div>
-                                <h2 className='text-2xl font-extrabold text-center mb-1'>Semaine {currentWeek}</h2>
-                                <p className='text-pink-200 text-center text-sm mb-6'>{weekInfo.d}</p>
-                                <div className='bg-white/20 rounded-full h-3 mb-2'>
-                                    <div className='bg-white rounded-full h-3 transition-all' style={{ width: progress + '%' }}></div>
+                <div className="space-y-6">
+                    <GlassCard className="p-6">
+                        <div className="grid md:grid-cols-2 gap-6 items-center">
+                            <div className="flex items-start gap-4">
+                                <div className="w-14 h-14 rounded-2xl bg-brand-bg border border-brand-border flex items-center justify-center text-brand-primary shrink-0">
+                                    <Sprout size={28} />
                                 </div>
-                                <div className='flex justify-between text-xs text-pink-200'>
+                                <div>
+                                    <p className="text-xs font-semibold text-brand-muted uppercase tracking-wider">
+                                        {weekInfo.label}
+                                    </p>
+                                    <h2 className="text-2xl font-bold text-brand-ink mt-1">
+                                        Semaine {currentWeek}
+                                    </h2>
+                                    <p className="text-sm text-brand-muted mt-1">{weekInfo.d}</p>
+                                </div>
+                            </div>
+                            <div>
+                                <div className="flex justify-between text-xs font-semibold text-brand-muted mb-2">
                                     <span>Semaine 1</span>
-                                    <span>{Math.round(progress)}% complété</span>
+                                    <span className="text-brand-primary">{Math.round(progress)}%</span>
                                     <span>Semaine 40</span>
                                 </div>
-                            </div>
-                            <div className='grid grid-cols-2 gap-3'>
-                                {[
-                                    { l: 'Semaines restantes', v: Math.max(0, 40 - currentWeek) },
-                                    { l: 'Date prévue', v: active.due_date ? new Date(active.due_date).toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' }) : 'À définir' },
-                                    { l: 'Trimestre', v: currentWeek <= 12 ? '1er' : currentWeek <= 26 ? '2ème' : '3ème' },
-                                    { l: 'Type', v: active.pregnancy_type === 'twins' ? 'Jumeaux' : active.pregnancy_type === 'triplets' ? 'Triplés' : 'Simple' },
-                                ].map(s => (
-                                    <div key={s.l} className='bg-white/15 backdrop-blur-sm rounded-xl p-3 text-center'>
-                                        <div className='text-lg font-bold'>{s.v}</div>
-                                        <div className='text-xs text-pink-200'>{s.l}</div>
-                                    </div>
-                                ))}
+                                <div className="w-full bg-brand-border rounded-full h-2 overflow-hidden">
+                                    <div
+                                        className="h-2 rounded-full bg-brand-primary transition-all duration-500"
+                                        style={{ width: `${progress}%` }}
+                                    />
+                                </div>
                             </div>
                         </div>
+                    </GlassCard>
+
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                        <StatTile
+                            label="Semaines restantes"
+                            value={Math.max(0, 40 - currentWeek)}
+                            sub="avant terme"
+                            icon={Calendar}
+                        />
+                        <StatTile
+                            label="Date prévue"
+                            value={
+                                active.due_date
+                                    ? new Date(active.due_date).toLocaleDateString('fr-FR', {
+                                          month: 'short',
+                                          day: 'numeric',
+                                      })
+                                    : '—'
+                            }
+                            sub={active.due_date ? 'accouchement' : 'À définir'}
+                            icon={Baby}
+                        />
+                        <StatTile label="Trimestre" value={trimesterLabel} sub="en cours" icon={Heart} />
+                        <StatTile label="Type" value={pregnancyTypeLabel} sub="de grossesse" icon={Activity} />
                     </div>
 
-                    {/* Tab navigation */}
-                    <div className="flex gap-1 p-1 rounded-2xl overflow-x-auto" style={{ background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(8px)' }}>
-                        {TABS.map(tab => {
-                            const Icon = tab.icon;
-                            const isActive = activeTab === tab.id;
-                            return (
-                                <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap transition-all duration-200 ${isActive
-                                            ? 'text-white shadow-md'
-                                            : 'text-gray-500 hover:text-gray-700 hover:bg-white/50'
-                                        }`}
-                                    style={isActive ? { background: 'linear-gradient(135deg, #f472b6, #fb7185)' } : {}}>
-                                    <Icon size={16} />
-                                    <span className="hidden sm:inline">{tab.label}</span>
-                                </button>
-                            );
-                        })}
-                    </div>
+                    <FilterPills
+                        options={TABS.map((tab) => ({ value: tab.id, label: tab.label }))}
+                        value={activeTab}
+                        onChange={setActiveTab}
+                        size="md"
+                        className="overflow-x-auto flex-nowrap !flex-nowrap"
+                    />
 
                     {/* Tab content */}
-                    <div>
+                    <div key={activeTab} className="fs-enter-item">
                         {activeTab === 'dashboard' && (
-                            <div className="space-y-6">
-                                {/* Trimester progress */}
-                                <div className='card'>
-                                    <h3 className='font-bold text-gray-900 mb-4'>Progression des trimestres</h3>
-                                    <div className='grid md:grid-cols-3 gap-4'>
-                                        {trimesters.map((t, i) => (
-                                            <div key={t.n} className={'p-4 rounded-2xl border-2 transition-all ' + (i === 0 && currentWeek <= 12 ? 'border-pink-400 bg-pink-50' : i === 1 && currentWeek > 12 && currentWeek <= 26 ? 'border-purple-400 bg-purple-50' : i === 2 && currentWeek > 26 ? 'border-indigo-400 bg-indigo-50' : 'border-gray-100 bg-gray-50')}>
-                                                <div className='flex items-center gap-2 mb-2'>
-                                                    {t.done ? <CheckCircle size={18} className='text-green-500' /> : <div className={'w-5 h-5 rounded-full border-2 ' + (i === 0 ? 'border-pink-400' : i === 1 ? 'border-purple-400' : 'border-indigo-400')}></div>}
-                                                    <span className='font-bold text-gray-800 text-sm'>{t.n}</span>
-                                                </div>
-                                                <p className='text-xs text-gray-500'>{t.w}</p>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* Quick access tools */}
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                    {TABS.filter(t => t.id !== 'dashboard').map(tab => {
-                                        const Icon = tab.icon;
-                                        return (
-                                            <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                                                className="card card-hover text-center py-6 cursor-pointer group">
-                                                <div className="w-12 h-12 mx-auto mb-3 rounded-full flex items-center justify-center transition-all group-hover:scale-110" style={{ background: 'linear-gradient(135deg, #fce7f3, #fbcfe8)' }}>
-                                                    <Icon size={22} className="text-pink-600" />
-                                                </div>
-                                                <p className="font-semibold text-gray-800 text-sm">{tab.label}</p>
-                                                <p className="text-xs text-gray-400 mt-1">Accéder à l'outil →</p>
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-
-                                {/* Multiple pregnancies */}
-                                {preg.length > 1 && (
-                                    <div className="card">
-                                        <h4 className="font-bold text-gray-900 mb-3">Vos grossesses</h4>
-                                        <div className="space-y-2">
-                                            {preg.map(p => (
-                                                <button key={p.id} onClick={() => setActive(p)}
-                                                    className={`w-full text-left p-3 rounded-xl border-2 transition-all ${p.id === active.id ? 'border-pink-400 bg-pink-50' : 'border-gray-100 hover:border-gray-200'}`}>
-                                                    <p className="font-semibold text-gray-800 text-sm">Grossesse du {new Date(p.start_date).toLocaleDateString('fr-FR')}</p>
-                                                    <p className="text-xs text-gray-400">{p.pregnancy_type === 'twins' ? 'Jumeaux' : p.pregnancy_type === 'triplets' ? 'Triplés' : 'Simple'}</p>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                <button onClick={() => setShowForm(true)} className='btn-primary flex items-center gap-2'>
-                                    <Plus size={18} /> Ajouter une grossesse
-                                </button>
-                            </div>
+                            <PregnancyDashboard
+                                pregnancyId={active.id}
+                                currentWeek={currentWeek}
+                                progress={progress}
+                                weekInfo={weekInfo}
+                                trimesters={trimesters}
+                                onOpenTab={setActiveTab}
+                            />
                         )}
 
                         {activeTab === 'kicks' && <KickCounterTab pregnancyId={active.id} />}
                         {activeTab === 'contractions' && <ContractionTimerTab pregnancyId={active.id} />}
                         {activeTab === 'weight' && <WeightTrackerTab pregnancyId={active.id} currentWeek={currentWeek} />}
-                        {activeTab === 'symptoms' && <PregnancySymptomsTab />}
+                        {activeTab === 'symptoms' && <PregnancySymptomsTab pregnancyId={active.id} />}
                     </div>
                 </div>
             )}

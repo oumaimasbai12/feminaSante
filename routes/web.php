@@ -3,10 +3,6 @@
 
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-use App\Models\User;
-use App\Models\Cycle;
-use App\Models\Pregnancy\Pregnancy;
-use App\Models\Menopause\Menopause;
 use App\Http\Controllers\Gynecologist\DashboardController;
 
 // ─────────────────────────────────────────────
@@ -36,36 +32,28 @@ Route::get("/profile", fn() => Inertia::render("Profile/Index"))->name("profile"
 Route::get("/menopause", fn() => Inertia::render("Menopause/Index"))->name("menopause");
 Route::get("/forgot-password", fn() => Inertia::render("Auth/ForgotPassword"))->name("forgot-password");
 Route::get("/reset-password", fn() => Inertia::render("Auth/ResetPassword"))->name("reset-password");
+Route::get("/diseases", fn() => Inertia::render("Diseases/Index"))->name("diseases");
+Route::get("/diseases/library", fn() => Inertia::render("Diseases/Library"))->name("diseases.library");
+Route::get("/diseases/symptom-checker", fn() => Inertia::render("Diseases/SymptomChecker"))->name("diseases.symptom-checker");
+Route::get("/diseases/category/{slug}", fn($slug) => Inertia::render("Diseases/Category", ["categorySlug" => $slug]))->name("diseases.category");
+Route::get("/diseases/catalog/{slug}", fn($slug) => Inertia::render("Diseases/Show", ["diseaseSlug" => $slug]))->name("diseases.catalog");
+Route::get("/diseases/{slug}", fn($slug) => Inertia::render("Diseases/Show", ["diseaseSlug" => $slug]))->name("diseases.show");
+Route::get("/cycle", fn() => Inertia::render("Cycle/Index"))->name("cycle");
+Route::get("/cycle/history", fn() => Inertia::render("Cycle/History"))->name("cycle.history");
+Route::get("/pregnancy", fn() => Inertia::render("Pregnancy/Index"))->name("pregnancy");
+Route::get("/pregnancy/tools", fn() => Inertia::render("Pregnancy/Tools"))->name("pregnancy.tools");
+Route::get("/pregnancy/week-by-week", fn() => Inertia::render("Pregnancy/WeekByWeek"))->name("pregnancy.week-by-week");
 
 // ─────────────────────────────────────────────
 // ADMIN — auth gérée côté React + API (intentionnel, même pattern existant)
 // ─────────────────────────────────────────────
 Route::prefix("admin")->group(function () {
 
-    Route::get("/dashboard", function () {
-        return Inertia::render("Admin/Dashboard", [
-            "stats" => [
-                "total_users"         => User::count(),
-                "total_cycles_logged" => Cycle::count(),
-                "total_pregnancies"   => Pregnancy::count(),
-                "total_menopauses"    => Menopause::count(),
-            ],
-        ]);
-    })->name("admin.dashboard");
+    Route::get("/dashboard", fn () => Inertia::render("Admin/Dashboard"))->name("admin.dashboard");
 
-    Route::get("/users", function () {
-        return Inertia::render("Admin/Users/Index", [
-            "users" => User::select("id", "nom", "email", "is_admin", "created_at")
-                ->latest()
-                ->paginate(15),
-        ]);
-    })->name("admin.users");
+    Route::get("/users", fn () => Inertia::render("Admin/Users/Index"))->name("admin.users");
 
-    Route::get("/users/{id}", function ($id) {
-        return Inertia::render("Admin/Users/Show", [
-            "userData" => User::with(["pregnancies", "menopauses"])->findOrFail($id),
-        ]);
-    })->name("admin.users.show");
+    Route::get("/users/{id}", fn ($id) => Inertia::render("Admin/Users/Show", ["userId" => (int) $id]))->name("admin.users.show");
 
     Route::get('/gynecologists', fn() => Inertia::render('Admin/Gynecologists/Index'))->name('admin.gynecologists');
     Route::get('/gynecologists/create', fn() => Inertia::render('Admin/Gynecologists/Form'))->name('admin.gynecologists.create');
@@ -74,6 +62,8 @@ Route::prefix("admin")->group(function () {
     Route::get('/articles', fn() => Inertia::render('Admin/Articles/Index'))->name('admin.articles');
     Route::get('/articles/create', fn() => Inertia::render('Admin/Articles/Form'))->name('admin.articles.create');
     Route::get('/articles/{id}/edit', fn($id) => Inertia::render('Admin/Articles/Form', ['articleId' => $id]))->name('admin.articles.edit');
+
+    Route::get('/appointments', fn () => Inertia::render('Admin/Appointments/Index'))->name('admin.appointments');
 });
 
 // ─────────────────────────────────────────────
@@ -87,5 +77,8 @@ Route::prefix("admin")->group(function () {
 Route::prefix('gynecologist')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('gynecologist.dashboard');
     Route::get('/appointments', [DashboardController::class, 'index'])->name('gynecologist.appointments');
+    Route::get('/availability', fn () => Inertia::render('Gynecologist/Availability'))->name('gynecologist.availability');
+    Route::get('/patients', fn () => Inertia::render('Gynecologist/Patients'))->name('gynecologist.patients');
+    Route::get('/patients/{userId}', fn ($userId) => Inertia::render('Gynecologist/PatientFile', ['userId' => (int) $userId]))->name('gynecologist.patient');
     Route::redirect('/', '/gynecologist/dashboard');
 });

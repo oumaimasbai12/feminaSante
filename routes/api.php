@@ -18,7 +18,10 @@ use App\Http\Controllers\Api\Diseases\PreventionTipsController;
 use App\Http\Controllers\Api\Appointments\AppointmentController;
 use App\Http\Controllers\Api\Appointments\AvailabilityController;
 use App\Http\Controllers\Api\Appointments\GynecologistController;
+use App\Http\Controllers\Api\Appointments\GynecologistAvailabilitySummaryController;
+use App\Http\Controllers\Api\Appointments\GynecologistSlotController;
 use App\Http\Controllers\Api\Assistant\ChatController;
+use App\Http\Controllers\Api\Quiz\QuizPlayController;
 use App\Http\Controllers\Api\Quiz\QuestionController;
 use App\Http\Controllers\Api\Quiz\QuizController;
 use App\Http\Controllers\Api\Quiz\QuizResultController;
@@ -27,9 +30,12 @@ use App\Http\Controllers\Api\Pregnancy\KickCounterController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\Pregnancy\PregnancyCheckupController;
 use App\Http\Controllers\Api\Pregnancy\PregnancyController;
+use App\Http\Controllers\Api\Pregnancy\PregnancyDashboardController;
 use App\Http\Controllers\Api\Menopause\MenopauseController;
+use App\Http\Controllers\Api\Menopause\MenopauseDashboardController;
 use App\Http\Controllers\Api\Menopause\MenopauseSymptomLogController;
 use App\Http\Controllers\Api\Menopause\MenopauseTreatmentController;
+use App\Http\Controllers\Api\Pregnancy\PregnancySymptomController;
 use App\Http\Controllers\Api\Pregnancy\WeightGainController;
 use Illuminate\Support\Facades\Route;
 
@@ -45,10 +51,14 @@ Route::prefix('v1')->group(function () {
     Route::get('/articles', [ArticleController::class, 'index']);
     Route::get('/articles/{article}', [ArticleController::class, 'show']);
     Route::get('/article-categories', [ArticleCategoryController::class, 'index']);
+    Route::get('/gynecologists/filters', [GynecologistController::class, 'filters']);
     Route::get('/gynecologists', [GynecologistController::class, 'index']);
+    Route::get('/gynecologists/{gynecologist}/availability', GynecologistAvailabilitySummaryController::class);
+    Route::get('/gynecologists/{gynecologist}/slots', GynecologistSlotController::class);
     Route::get('/gynecologists/{gynecologist}', [GynecologistController::class, 'show']);
     Route::get('/quizzes', [QuizController::class, 'index']);
     Route::get('/quizzes/{quiz}', [QuizController::class, 'show']);
+    Route::get('/quizzes/{quiz}/play', [QuizPlayController::class, 'play']);
     Route::get('/availabilities', [AvailabilityController::class, 'index']);
 
     // ── PROTECTED ────────────────────────────────────────
@@ -56,6 +66,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/dashboard', DashboardController::class);
         Route::get('/profile', [ProfileController::class, 'show']);
         Route::put('/profile', [ProfileController::class, 'update'])->middleware('log.sensitive');
+        Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->middleware('log.sensitive');
         Route::post('/logout', [ProfileController::class, 'logout']);
 
         Route::apiResource('/cycles', CycleController::class);
@@ -72,6 +83,7 @@ Route::prefix('v1')->group(function () {
         // Quizzes — write only (reads are public above)
         Route::post('/quizzes', [QuizController::class, 'store']);
         Route::post('/quizzes/{quiz}/questions', [QuestionController::class, 'store']);
+        Route::post('/quizzes/{quiz}/questions/{question}/check', [QuizPlayController::class, 'checkAnswer']);
         Route::post('/quizzes/{quiz}/submit', [QuizResultController::class, 'store']);
 
         Route::get('/chats', [ChatController::class, 'index']);
@@ -79,14 +91,20 @@ Route::prefix('v1')->group(function () {
 
         Route::apiResource('/notifications', NotificationController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
 
-        // Gynecologists — write only (reads are public above)
-        Route::post('/gynecologists', [GynecologistController::class, 'store']);
         Route::post('/availabilities', [AvailabilityController::class, 'store']);
 
         Route::apiResource('/appointments', AppointmentController::class)->only(['index', 'store', 'show', 'update']);
+        Route::put('/appointments/{appointment}/preparation', [AppointmentController::class, 'updatePreparation']);
+        Route::get('/visit-summaries', [\App\Http\Controllers\Api\Appointments\VisitSummaryController::class, 'index']);
+        Route::get('/gynecologists/{gynecologist}/messages', [\App\Http\Controllers\Api\Appointments\PatientConsultationMessageController::class, 'index']);
+        Route::post('/gynecologists/{gynecologist}/messages', [\App\Http\Controllers\Api\Appointments\PatientConsultationMessageController::class, 'store']);
 
         Route::apiResource('/pregnancies', PregnancyController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
+        Route::get('/pregnancies/{pregnancy}/dashboard', [PregnancyDashboardController::class, 'show']);
+        Route::get('/pregnancies/{pregnancy}/export', [PregnancyDashboardController::class, 'export']);
         Route::apiResource('/menopauses', MenopauseController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
+        Route::get('/menopauses/{menopause}/dashboard', [MenopauseDashboardController::class, 'show']);
+        Route::get('/menopause-symptoms/catalog', [MenopauseDashboardController::class, 'symptomCatalog']);
         Route::get('/menopauses/{menopause}/symptom-logs', [MenopauseSymptomLogController::class, 'index']);
         Route::post('/menopauses/{menopause}/symptom-logs', [MenopauseSymptomLogController::class, 'store']);
         Route::get('/menopauses/{menopause}/treatments', [MenopauseTreatmentController::class, 'index']);
@@ -128,6 +146,13 @@ Route::prefix('v1')->group(function () {
         Route::patch('/weight-gains/{weightGain}', [WeightGainController::class, 'update']);
         Route::delete('/weight-gains/{weightGain}', [WeightGainController::class, 'destroy']);
 
+        Route::get('/pregnancies/{pregnancy}/symptoms', [PregnancySymptomController::class, 'index']);
+        Route::post('/pregnancies/{pregnancy}/symptoms', [PregnancySymptomController::class, 'store']);
+        Route::get('/pregnancy-symptoms/{pregnancySymptom}', [PregnancySymptomController::class, 'show']);
+        Route::put('/pregnancy-symptoms/{pregnancySymptom}', [PregnancySymptomController::class, 'update']);
+        Route::patch('/pregnancy-symptoms/{pregnancySymptom}', [PregnancySymptomController::class, 'update']);
+        Route::delete('/pregnancy-symptoms/{pregnancySymptom}', [PregnancySymptomController::class, 'destroy']);
+
         Route::prefix('diseases')->group(function () {
             Route::get('/catalog', [DiseaseCatalogController::class, 'index']);
             Route::get('/catalog/{slug}', [DiseaseCatalogController::class, 'show']);
@@ -140,7 +165,10 @@ Route::prefix('v1')->group(function () {
         // ── ADMIN ────────────────────────────────────────
         Route::prefix('admin')->middleware('admin')->group(function () {
             Route::get('/dashboard', \App\Http\Controllers\Api\Admin\AdminDashboardController::class);
+            Route::get('/appointments', [\App\Http\Controllers\Api\Admin\AdminAppointmentController::class, 'index']);
             Route::apiResource('/users', \App\Http\Controllers\Api\Admin\UserController::class)->only(['index', 'show', 'destroy']);
+            Route::get('/gynecologists', [GynecologistController::class, 'adminIndex']);
+            Route::post('/gynecologists', [GynecologistController::class, 'store']);
             Route::put('/gynecologists/{gynecologist}', [GynecologistController::class, 'update']);
             Route::delete('/gynecologists/{gynecologist}', [GynecologistController::class, 'destroy']);
             Route::put('/articles/{article}', [ArticleController::class, 'update']);
@@ -150,6 +178,19 @@ Route::prefix('v1')->group(function () {
         // ── GYNECOLOGIST ─────────────────────────────────
         Route::prefix('gynecologist')->middleware('gynecologist')->group(function () {
             Route::get('/dashboard', \App\Http\Controllers\Api\Gynecologist\DashboardController::class);
+            Route::get('/patients', \App\Http\Controllers\Api\Gynecologist\PatientListController::class);
+            Route::get('/patients/{user}/messages', [\App\Http\Controllers\Api\Gynecologist\ConsultationMessageController::class, 'index']);
+            Route::post('/patients/{user}/messages', [\App\Http\Controllers\Api\Gynecologist\ConsultationMessageController::class, 'store']);
+            Route::get('/availabilities', [\App\Http\Controllers\Api\Gynecologist\GynecologistAvailabilityController::class, 'index']);
+            Route::post('/availabilities', [\App\Http\Controllers\Api\Gynecologist\GynecologistAvailabilityController::class, 'store']);
+            Route::delete('/availabilities/{availability}', [\App\Http\Controllers\Api\Gynecologist\GynecologistAvailabilityController::class, 'destroy']);
+            Route::get('/patients/{user}/file', \App\Http\Controllers\Api\Gynecologist\PatientFileController::class);
+            Route::put('/patients/{user}/priority', [\App\Http\Controllers\Api\Gynecologist\PatientPriorityController::class, 'update']);
+            Route::get('/clinical-notes', [\App\Http\Controllers\Api\Gynecologist\ClinicalNoteController::class, 'index']);
+            Route::post('/clinical-notes', [\App\Http\Controllers\Api\Gynecologist\ClinicalNoteController::class, 'store']);
+            Route::put('/appointments/{appointment}/confirm', [\App\Http\Controllers\Api\Gynecologist\AppointmentController::class, 'confirm']);
+            Route::put('/appointments/{appointment}/refuse', [\App\Http\Controllers\Api\Gynecologist\AppointmentController::class, 'refuse']);
+            Route::put('/appointments/{appointment}/complete', [\App\Http\Controllers\Api\Gynecologist\AppointmentController::class, 'complete']);
             Route::put('/appointments/{appointment}/status', [\App\Http\Controllers\Api\Gynecologist\AppointmentController::class, 'updateStatus']);
             Route::put('/appointments/{appointment}/notes', [\App\Http\Controllers\Api\Gynecologist\AppointmentController::class, 'updateNotes']);
         });

@@ -1,25 +1,30 @@
 import React from 'react';
+import { MapPin, Calendar } from 'lucide-react';
 
 export default function GynecologistCard({ name, specialty, address, nextAvailable }) {
     return (
-        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col h-full hover:shadow-md transition">
+        <div className="glass-card flex flex-col h-full">
             <div className="flex items-start gap-4 mb-4">
-                <div className="w-16 h-16 bg-rose-100 rounded-full flex-shrink-0"></div>
+                <div className="w-16 h-16 bg-brand-soft rounded-full flex-shrink-0 flex items-center justify-center text-brand-primary font-bold text-xl">
+                    {name?.charAt(0) || 'D'}
+                </div>
                 <div>
-                    <h3 className="font-bold text-gray-900 text-lg">Dr. {name}</h3>
-                    <p className="text-rose-600 font-medium text-sm">{specialty}</p>
-                    <p className="text-gray-500 text-sm mt-1">{address}</p>
+                    <h3 className="font-bold text-brand-ink text-lg">Dr. {name}</h3>
+                    <p className="text-brand-primary font-medium text-sm">{specialty}</p>
+                    <p className="text-brand-muted text-sm mt-1 flex items-start gap-1">
+                        <MapPin size={14} className="mt-0.5 flex-shrink-0" /> {address}
+                    </p>
                 </div>
             </div>
             {nextAvailable && (
-                <div className="mt-auto pt-4 border-t border-gray-50">
-                    <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-2">Prochaine dispo</p>
-                    <div className="flex gap-2">
-                        <span className="px-3 py-1 bg-green-50 text-green-700 text-sm font-semibold rounded-md border border-green-100">{nextAvailable}</span>
-                    </div>
+                <div className="mt-auto pt-4 border-t border-brand-border">
+                    <p className="text-xs text-brand-muted font-bold uppercase tracking-wider mb-2">Prochaine dispo</p>
+                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-50 text-green-700 text-sm font-semibold rounded-md border border-green-100">
+                        <Calendar size={14} /> {nextAvailable}
+                    </span>
                 </div>
             )}
-            <button className="w-full mt-4 py-2 border border-rose-200 text-rose-700 bg-rose-50 rounded-xl font-bold hover:bg-rose-100 transition">
+            <button type="button" className="w-full mt-4 btn-primary">
                 Prendre RDV
             </button>
         </div>

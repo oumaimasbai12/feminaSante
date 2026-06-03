@@ -1,75 +1,151 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import AdminLayout from '@/Components/Layouts/AdminLayout';
-import { Head } from '@inertiajs/react';
+import StatTile from '@/Components/UI/StatTile';
+import GlassCard from '@/Components/UI/GlassCard';
+import StatusBadge from '@/Components/UI/StatusBadge';
+import { BarChart, DonutChart } from '@/Components/UI/Charts';
+import { Head, Link } from '@inertiajs/react';
+import {
+    Users, Calendar, Stethoscope, Baby, Moon, Droplets, Clock, ArrowRight, UserPlus,
+} from 'lucide-react';
 
-export default function Dashboard({ auth, stats }) {
-    // Default stats if none passed
-    const metrics = stats || {
-        total_users: 1240,
-        total_cycles_logged: 54300,
-        total_pregnancies: 312,
-        total_menopauses: 189
-    };
+const APPOINTMENT_CHART_COLORS = {
+    'En attente': '#D97706',
+    'Confirmés': '#059669',
+    'Terminés': '#853953',
+    'Refusés': '#DC2626',
+};
+
+function StatSkeleton() {
+    return (
+        <div className="glass-card h-[118px] animate-pulse">
+            <div className="w-10 h-10 rounded-xl bg-brand-bg mb-3" />
+            <div className="h-7 w-12 bg-brand-bg rounded mb-2" />
+            <div className="h-3 w-20 bg-brand-bg rounded" />
+        </div>
+    );
+}
+
+export default function Dashboard() {
+    const [data, setData] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        window.axios.get('/api/v1/admin/dashboard')
+            .then(r => setData(r.data?.data || r.data))
+            .catch(() => setData(null))
+            .finally(() => setLoading(false));
+    }, []);
+
+    const stats = data?.stats || {};
+    const charts = data?.charts || {};
+    const appointmentSegments = (charts.appointments_by_status || []).map(s => ({
+        ...s,
+        color: APPOINTMENT_CHART_COLORS[s.label] || undefined,
+    }));
 
     return (
-        <AdminLayout
-            user={auth?.user}
-            header={<h2 className="font-bold text-xl text-slate-800">Tableau de bord Administrateur</h2>}
-        >
-            <Head title="Admin Dashboard - Femina Santé" />
+        <AdminLayout title="Vue d'ensemble">
+            <Head title="Admin - FeminaSante" />
 
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 relative overflow-hidden">
-                    <div className="relative z-10 w-full md:w-2/3">
-                        <h3 className="text-2xl font-black text-slate-900 mb-2">Centre de Contrôle 🛠️</h3>
-                        <p className="text-slate-600 mb-6 leading-relaxed">
-                            Bienvenue dans l'espace d'administration de Femina Santé. D'ici, vous gardez un œil sur les métriques clés de l'application et vous pouvez modérer les utilisatrices ou le contenu éducatif.
-                        </p>
-                    </div>
-                    <div className="absolute top-0 right-0 -mt-10 -mr-10 opacity-10">
-                        <svg className="w-64 h-64 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd"></path></svg>
-                    </div>
-                </div>
+            <p className="text-brand-muted text-sm mb-6">
+                Supervisez les inscriptions, rendez-vous et praticiens depuis un seul endroit.
+            </p>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {/* Stat Card 1 */}
-                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col justify-between">
-                        <div className="flex items-start justify-between mb-4">
-                            <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 text-xl font-bold">👥</div>
-                            <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full uppercase tracking-widest">+12% ce mois</span>
+            <div className="space-y-6">
+                {loading ? (
+                    <>
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                            {[...Array(4)].map((_, i) => <StatSkeleton key={i} />)}
                         </div>
-                        <h4 className="text-3xl font-black text-slate-800">{metrics.total_users.toLocaleString()}</h4>
-                        <p className="text-sm font-semibold text-slate-500 mt-1 uppercase tracking-wider">Patientes inscrites</p>
-                    </div>
-
-                    {/* Stat Card 2 */}
-                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col justify-between">
-                        <div className="flex items-start justify-between mb-4">
-                            <div className="w-12 h-12 rounded-xl bg-rose-50 flex items-center justify-center text-rose-600 text-xl font-bold">🩸</div>
+                        <div className="grid lg:grid-cols-2 gap-6">
+                            <GlassCard className="h-52 animate-pulse" />
+                            <GlassCard className="h-52 animate-pulse" />
                         </div>
-                        <h4 className="text-3xl font-black text-slate-800">{metrics.total_cycles_logged.toLocaleString()}</h4>
-                        <p className="text-sm font-semibold text-slate-500 mt-1 uppercase tracking-wider">Cycles enregistrés</p>
-                    </div>
-
-                    {/* Stat Card 3 */}
-                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col justify-between">
-                        <div className="flex items-start justify-between mb-4">
-                            <div className="w-12 h-12 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600 text-xl font-bold">🍼</div>
+                    </>
+                ) : (
+                    <>
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                            <StatTile label="Patientes" value={stats.total_patients} icon={Users} href="/admin/users" />
+                            <StatTile label="Praticiens actifs" value={stats.active_gynecologists} icon={Stethoscope} href="/admin/gynecologists" />
+                            <StatTile label="RDV en attente" value={stats.pending_appointments} icon={Clock} href="/admin/appointments?status=pending" />
+                            <StatTile label="RDV aujourd'hui" value={stats.today_appointments} icon={Calendar} href="/admin/appointments" />
                         </div>
-                        <h4 className="text-3xl font-black text-slate-800">{metrics.total_pregnancies.toLocaleString()}</h4>
-                        <p className="text-sm font-semibold text-slate-500 mt-1 uppercase tracking-wider">Grossesses suivies</p>
-                    </div>
-                    
-                    {/* Stat Card 4 */}
-                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col justify-between">
-                        <div className="flex items-start justify-between mb-4">
-                            <div className="w-12 h-12 rounded-xl bg-orange-50 flex items-center justify-center text-orange-600 text-xl font-bold">🍂</div>
-                        </div>
-                        <h4 className="text-3xl font-black text-slate-800">{metrics.total_menopauses.toLocaleString()}</h4>
-                        <p className="text-sm font-semibold text-slate-500 mt-1 uppercase tracking-wider">Profils ménopause</p>
-                    </div>
-                </div>
 
+                        <div className="grid lg:grid-cols-2 gap-6">
+                            <GlassCard>
+                                <h4 className="text-sm font-bold text-brand-ink mb-1">Inscriptions — 7 derniers jours</h4>
+                                <p className="text-xs text-brand-muted mb-4">Nouvelles patientes par jour</p>
+                                <BarChart data={charts.registrations_last_7_days || []} />
+                            </GlassCard>
+                            <GlassCard>
+                                <h4 className="text-sm font-bold text-brand-ink mb-1">Rendez-vous par statut</h4>
+                                <p className="text-xs text-brand-muted mb-4">Répartition sur la plateforme</p>
+                                <DonutChart segments={appointmentSegments} />
+                            </GlassCard>
+                        </div>
+
+                        <div>
+                            <h4 className="text-sm font-bold text-brand-ink mb-3">Activité plateforme</h4>
+                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                                <StatTile label="Cycles" value={stats.total_cycles_logged} icon={Droplets} />
+                                <StatTile label="Grossesses" value={stats.total_pregnancies} icon={Baby} />
+                                <StatTile label="Ménopause" value={stats.total_menopauses} icon={Moon} />
+                                <StatTile label="Total RDV" value={stats.total_appointments} icon={Calendar} href="/admin/appointments" />
+                            </div>
+                        </div>
+
+                        <div className="grid lg:grid-cols-2 gap-6">
+                            <div className="table-shell">
+                                <div className="table-toolbar py-4 !flex-row !items-center justify-between">
+                                    <h4 className="font-bold text-brand-ink text-sm flex items-center gap-2">
+                                        <UserPlus size={16} className="text-brand-primary" /> Inscriptions récentes
+                                    </h4>
+                                    <Link href="/admin/users" className="text-xs font-semibold text-brand-primary flex items-center gap-1 hover:opacity-80 transition-opacity">
+                                        Voir tout <ArrowRight size={14} />
+                                    </Link>
+                                </div>
+                                <div className="divide-y divide-brand-border">
+                                    {(data?.recent_users || []).length === 0 ? (
+                                        <p className="table-empty">Aucune inscription récente.</p>
+                                    ) : data.recent_users.map(u => (
+                                        <Link key={u.id} href={`/admin/users/${u.id}`} className="flex items-center justify-between px-5 py-4 hover:bg-brand-bg/60 transition-colors">
+                                            <div className="min-w-0">
+                                                <p className="font-semibold text-brand-ink text-sm truncate">{u.nom}</p>
+                                                <p className="text-xs text-brand-muted truncate">{u.email}</p>
+                                            </div>
+                                            <span className="status-badge badge-inactive shrink-0">Patiente</span>
+                                        </Link>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="table-shell">
+                                <div className="table-toolbar py-4 !flex-row !items-center justify-between">
+                                    <h4 className="font-bold text-brand-ink text-sm flex items-center gap-2">
+                                        <Calendar size={16} className="text-brand-primary" /> Rendez-vous récents
+                                    </h4>
+                                    <Link href="/admin/appointments" className="text-xs font-semibold text-brand-primary flex items-center gap-1 hover:opacity-80 transition-opacity">
+                                        Voir tout <ArrowRight size={14} />
+                                    </Link>
+                                </div>
+                                <div className="divide-y divide-brand-border">
+                                    {(data?.recent_appointments || []).length === 0 ? (
+                                        <p className="table-empty">Aucun rendez-vous.</p>
+                                    ) : data.recent_appointments.map(a => (
+                                        <div key={a.id} className="flex items-center justify-between gap-3 px-5 py-4">
+                                            <div className="min-w-0">
+                                                <p className="font-semibold text-brand-ink text-sm truncate">{a.patient_name}</p>
+                                                <p className="text-xs text-brand-muted truncate">{a.doctor_name}</p>
+                                            </div>
+                                            <StatusBadge status={a.status} className="shrink-0" />
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </>
+                )}
             </div>
         </AdminLayout>
     );

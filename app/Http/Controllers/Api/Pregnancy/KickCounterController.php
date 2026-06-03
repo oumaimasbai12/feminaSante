@@ -82,7 +82,7 @@ class KickCounterController extends Controller
         return $request->validate([
             'date' => [$required, 'date'],
             'start_time' => [$required, 'regex:/^\d{2}:\d{2}(:\d{2})?$/'],
-            'end_time' => ['nullable', 'regex:/^\d{2}:\d{2}(:\d{2})?$/', 'after:start_time'],
+            'end_time' => ['nullable', 'regex:/^\d{2}:\d{2}(:\d{2})?$/', 'after_or_equal:start_time'],
             'kicks_count' => ['nullable', 'integer', 'min:0'],
             'time_to_10_kicks' => ['nullable', 'in:<30min,30-60min,1-2hours,>2hours'],
             'activity_level' => ['nullable', 'in:low,normal,high'],

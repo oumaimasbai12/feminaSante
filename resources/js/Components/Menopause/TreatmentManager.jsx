@@ -1,15 +1,51 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import Modal from '@/Components/Common/Modal';
-import { Plus, Trash2 } from 'lucide-react';
+import GlassCard from '@/Components/UI/GlassCard';
+import ToggleOption from '@/Components/UI/ToggleOption';
+import {
+    Plus,
+    Pill,
+    ThermometerSun,
+    Moon,
+    Heart,
+    Loader2,
+    CheckCircle2,
+    X,
+} from 'lucide-react';
 
-export default function TreatmentManager() {
-    const [menopause, setMenopause] = useState(null);
-    const [treatments, setTreatments] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [showModal, setShowModal] = useState(false);
+const api = () => window.axios;
 
-    const [formData, setFormData] = useState({
+const TYPE_LABELS = {
+    medication: 'Médicament',
+    therapy: 'Thérapie',
+    lifestyle: 'Mode de vie',
+    supplement: 'Complément',
+    alternative: 'Alternative',
+    monitoring: 'Suivi',
+};
+
+const RELIEF_OPTIONS = [
+    {
+        key: 'relieves_hot_flashes',
+        label: 'Bouffées de chaleur',
+        hint: 'Réduit ou soulage les vagues de chaleur',
+        icon: ThermometerSun,
+    },
+    {
+        key: 'relieves_sleep_changes',
+        label: 'Troubles du sommeil',
+        hint: 'Améliore la qualité du sommeil',
+        icon: Moon,
+    },
+    {
+        key: 'relieves_mood_changes',
+        label: "Changements d'humeur",
+        hint: "Stabilise l'humeur et le moral",
+        icon: Heart,
+    },
+];
+
+function emptyForm() {
+    return {
         name: '',
         treatment_type: 'medication',
         start_date: new Date().toISOString().split('T')[0],
@@ -20,207 +56,340 @@ export default function TreatmentManager() {
         relieves_hot_flashes: false,
         relieves_sleep_changes: false,
         relieves_mood_changes: false,
-    });
+    };
+}
+
+export default function TreatmentManager({ menopauseId, onSave }) {
+    const [treatments, setTreatments] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [showForm, setShowForm] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState('');
+    const [formData, setFormData] = useState(emptyForm);
 
     useEffect(() => {
-        axios.get('/api/v1/menopauses')
-            .then(res => {
-                if (res.data && res.data.length > 0) {
-                    setMenopause(res.data[0]);
-                    return axios.get(`/api/v1/menopauses/${res.data[0].id}/treatments`);
-                } else {
-                    setLoading(false);
-                    return Promise.reject('No menopause profile found');
-                }
-            })
-            .then(res => {
-                setTreatments(res.data);
-                setLoading(false);
-            })
-            .catch(err => {
-                if (err !== 'No menopause profile found') {
-                    console.error(err);
-                }
-                setLoading(false);
-            });
-    }, []);
+        if (!menopauseId) {
+            setLoading(false);
+            return;
+        }
+        api()
+            .get(`/api/v1/menopauses/${menopauseId}/treatments`)
+            .then((res) => setTreatments(res.data))
+            .catch(console.error)
+            .finally(() => setLoading(false));
+    }, [menopauseId]);
+
+    const openForm = () => {
+        setFormData(emptyForm());
+        setError('');
+        setShowForm(true);
+    };
+
+    const closeForm = () => {
+        if (saving) return;
+        setShowForm(false);
+        setError('');
+    };
+
+    const update = (field, value) => setFormData((prev) => ({ ...prev, [field]: value }));
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!menopause) return;
+        if (!menopauseId) return;
 
+        setSaving(true);
+        setError('');
         try {
-            const response = await axios.post(`/api/v1/menopauses/${menopause.id}/treatments`, formData);
+            const response = await api().post(`/api/v1/menopauses/${menopauseId}/treatments`, formData);
             setTreatments([response.data.treatment, ...treatments]);
-            setShowModal(false);
-            setFormData({
-                name: '',
-                treatment_type: 'medication',
-                start_date: new Date().toISOString().split('T')[0],
-                end_date: '',
-                status: 'active',
-                description: '',
-                notes: '',
-                relieves_hot_flashes: false,
-                relieves_sleep_changes: false,
-                relieves_mood_changes: false,
-            });
-        } catch (error) {
-            console.error('Error saving treatment', error);
+            setShowForm(false);
+            setFormData(emptyForm());
+            onSave?.();
+        } catch (err) {
+            setError(
+                err.response?.data?.message ||
+                    (err.response?.data?.errors && Object.values(err.response.data.errors).flat().join(' ')) ||
+                    "Impossible d'enregistrer le traitement.",
+            );
+        } finally {
+            setSaving(false);
         }
     };
 
     if (loading) {
         return (
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-600"></div>
-            </div>
+            <GlassCard className="p-8 flex justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-primary" />
+            </GlassCard>
         );
     }
 
-    if (!menopause) {
+    if (!menopauseId) {
         return (
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm text-center">
-                <p className="text-slate-500">Configurez votre profil ménopause pour gérer vos traitements.</p>
-            </div>
+            <GlassCard className="p-8 text-center">
+                <p className="text-brand-muted">Configurez votre profil ménopause pour gérer vos traitements.</p>
+            </GlassCard>
         );
     }
-
-    const typeLabels = {
-        medication: 'Médicament',
-        therapy: 'Thérapie',
-        lifestyle: 'Mode de vie',
-        supplement: 'Complément',
-        alternative: 'Alternative',
-        monitoring: 'Suivi'
-    };
 
     return (
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col h-full">
-            <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                    Traitements et habitudes
-                </h3>
-                <button
-                    onClick={() => setShowModal(true)}
-                    className="px-4 py-2 bg-gradient-to-r from-rose-500 to-rose-600 text-white text-sm font-semibold rounded-xl hover:from-rose-600 hover:to-rose-700 transition-all shadow-sm flex items-center gap-2"
-                    title="Ajouter un traitement"
-                >
-                    <Plus size={16} />
-                    Ajouter
-                </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto pr-2 space-y-3 max-h-96">
-                {treatments.length === 0 ? (
-                    <div className="text-center py-10 text-slate-500">
-                        Aucun traitement ou habitude enregistré pour le moment.
+        <div className="space-y-6">
+            <GlassCard className="p-5 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div>
+                        <h3 className="text-base font-bold text-brand-ink flex items-center gap-2">
+                            <Pill size={18} className="text-brand-primary" />
+                            Traitements & habitudes
+                        </h3>
+                        <p className="text-sm text-brand-muted mt-1">
+                            THS, médicaments, compléments ou habitudes de bien-être.
+                        </p>
                     </div>
-                ) : (
-                    treatments.map((treatment) => (
-                        <div key={treatment.id} className="p-4 border border-slate-200 rounded-2xl bg-slate-50 hover:bg-white hover:shadow-sm transition">
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <h4 className="font-bold text-slate-900">{treatment.name}</h4>
-                                    <p className="text-sm text-slate-500">{typeLabels[treatment.treatment_type]} • Depuis le {new Date(treatment.start_date).toLocaleDateString('fr-FR')}</p>
-                                </div>
-                                <span className={`px-3 py-1 text-xs font-bold rounded-full ${treatment.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-700'}`}>
-                                    {treatment.status === 'active' ? 'Actif' : 'Arrêté'}
-                                </span>
+                    {!showForm && (
+                        <button
+                            type="button"
+                            onClick={openForm}
+                            className="btn-primary text-sm inline-flex items-center justify-center gap-2 shrink-0"
+                        >
+                            <Plus size={16} />
+                            Ajouter un traitement
+                        </button>
+                    )}
+                </div>
+            </GlassCard>
+
+            {showForm && (
+                <GlassCard className="p-5 sm:p-6 fs-reveal">
+                    <div className="flex items-start justify-between gap-3 mb-6">
+                        <div>
+                            <h3 className="text-base font-bold text-brand-ink">Ajouter un traitement</h3>
+                            <p className="text-sm text-brand-muted mt-1">
+                                Médicament, THS, complément ou habitude de bien-être
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={closeForm}
+                            disabled={saving}
+                            className="p-2 rounded-lg text-brand-muted hover:text-brand-ink hover:bg-brand-bg transition-colors shrink-0 disabled:opacity-50"
+                            aria-label="Fermer le formulaire"
+                        >
+                            <X size={18} />
+                        </button>
+                    </div>
+
+                    <form onSubmit={handleSubmit} className="space-y-5">
+                        {error && (
+                            <div className="p-3 bg-red-50 border border-red-100 text-red-700 rounded-xl text-sm">
+                                {error}
+                            </div>
+                        )}
+
+                        <div className="rounded-xl border border-brand-border bg-brand-bg/50 p-4 space-y-4">
+                            <div>
+                                <label htmlFor="treatment_name" className="block text-sm font-semibold text-brand-ink mb-2">
+                                    Nom du traitement / habitude <span className="text-brand-primary">*</span>
+                                </label>
+                                <input
+                                    id="treatment_name"
+                                    type="text"
+                                    required
+                                    value={formData.name}
+                                    onChange={(e) => update('name', e.target.value)}
+                                    placeholder="Ex. Yoga, THS, Vitamine D…"
+                                    className="input-field bg-white"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="treatment_type" className="block text-sm font-semibold text-brand-ink mb-2">
+                                    Type
+                                </label>
+                                <select
+                                    id="treatment_type"
+                                    value={formData.treatment_type}
+                                    onChange={(e) => update('treatment_type', e.target.value)}
+                                    className="input-field bg-white"
+                                >
+                                    {Object.entries(TYPE_LABELS).map(([key, label]) => (
+                                        <option key={key} value={key}>
+                                            {label}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
                         </div>
-                    ))
-                )}
-            </div>
 
-            <Modal show={showModal} onClose={() => setShowModal(false)}>
-                <div className="p-6">
-                    <h2 className="text-xl font-bold text-slate-900 mb-6">Ajouter un traitement</h2>
-                    <form onSubmit={handleSubmit} className="space-y-4 text-left">
                         <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-2">Nom du traitement / habitude</label>
-                            <input
-                                type="text"
-                                required
-                                value={formData.name}
-                                onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                placeholder="Ex: Yoga, THS, Vitamine D..."
-                                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none transition-all"
+                            <label htmlFor="treatment_description" className="block text-sm font-semibold text-brand-ink mb-2">
+                                Description <span className="text-brand-muted font-normal">(optionnel)</span>
+                            </label>
+                            <textarea
+                                id="treatment_description"
+                                value={formData.description}
+                                onChange={(e) => update('description', e.target.value)}
+                                className="input-field resize-none bg-white"
+                                rows={2}
+                                placeholder="Posologie, fréquence, contexte…"
                             />
                         </div>
-                        <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-2">Type</label>
-                            <select
-                                value={formData.treatment_type}
-                                onChange={e => setFormData({ ...formData, treatment_type: e.target.value })}
-                                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none transition-all"
-                            >
-                                {Object.entries(typeLabels).map(([key, label]) => (
-                                    <option key={key} value={key}>{label}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-2">Description (Optionnelle)</label>
-                            <textarea
-                                value={formData.description}
-                                onChange={e => setFormData({ ...formData, description: e.target.value })}
-                                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none transition-all"
-                                rows="2"
-                            ></textarea>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-2">Date de début</label>
+                                <label htmlFor="treatment_start" className="block text-sm font-semibold text-brand-ink mb-2">
+                                    Date de début
+                                </label>
                                 <input
+                                    id="treatment_start"
                                     type="date"
+                                    lang="fr-FR"
                                     required
                                     value={formData.start_date}
-                                    onChange={e => setFormData({ ...formData, start_date: e.target.value })}
-                                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none transition-all"
+                                    onChange={(e) => update('start_date', e.target.value)}
+                                    className="input-field bg-white"
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-2">Date de fin (Optionnelle)</label>
+                                <label htmlFor="treatment_end" className="block text-sm font-semibold text-brand-ink mb-2">
+                                    Date de fin <span className="text-brand-muted font-normal">(optionnel)</span>
+                                </label>
                                 <input
+                                    id="treatment_end"
                                     type="date"
+                                    lang="fr-FR"
                                     value={formData.end_date}
-                                    onChange={e => setFormData({ ...formData, end_date: e.target.value })}
-                                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none transition-all"
+                                    onChange={(e) => update('end_date', e.target.value)}
+                                    className="input-field bg-white"
                                 />
+                                <p className="text-[11px] text-brand-muted mt-1">
+                                    Laissez vide si le traitement est en cours
+                                </p>
                             </div>
                         </div>
-                        <div className="space-y-3 mt-4">
-                            <p className="text-sm font-semibold text-slate-700">Ce traitement aide pour :</p>
-                            <label className="flex items-center space-x-3 cursor-pointer">
-                                <input type="checkbox" checked={formData.relieves_hot_flashes} onChange={e => setFormData({ ...formData, relieves_hot_flashes: e.target.checked })} className="rounded text-rose-600 focus:ring-rose-500" />
-                                <span className="text-slate-700">Bouffées de chaleur</span>
-                            </label>
-                            <label className="flex items-center space-x-3 cursor-pointer">
-                                <input type="checkbox" checked={formData.relieves_sleep_changes} onChange={e => setFormData({ ...formData, relieves_sleep_changes: e.target.checked })} className="rounded text-rose-600 focus:ring-rose-500" />
-                                <span className="text-slate-700">Troubles du sommeil</span>
-                            </label>
-                            <label className="flex items-center space-x-3 cursor-pointer">
-                                <input type="checkbox" checked={formData.relieves_mood_changes} onChange={e => setFormData({ ...formData, relieves_mood_changes: e.target.checked })} className="rounded text-rose-600 focus:ring-rose-500" />
-                                <span className="text-slate-700">Changements d'humeur</span>
-                            </label>
+
+                        <div className="space-y-3">
+                            <div>
+                                <p className="text-sm font-semibold text-brand-ink">Ce traitement aide pour</p>
+                                <p className="text-xs text-brand-muted mt-1">
+                                    Sélectionnez les symptômes concernés (optionnel)
+                                </p>
+                            </div>
+                            <div className="grid grid-cols-1 gap-3">
+                                {RELIEF_OPTIONS.map(({ key, label, hint, icon }) => (
+                                    <ToggleOption
+                                        key={key}
+                                        active={Boolean(formData[key])}
+                                        onClick={() => update(key, !formData[key])}
+                                        icon={icon}
+                                        label={label}
+                                        hint={hint}
+                                    />
+                                ))}
+                            </div>
                         </div>
+
                         <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-2">Notes (Optionnelles)</label>
+                            <label htmlFor="treatment_notes" className="block text-sm font-semibold text-brand-ink mb-2">
+                                Notes <span className="text-brand-muted font-normal">(optionnel)</span>
+                            </label>
                             <textarea
+                                id="treatment_notes"
                                 value={formData.notes}
-                                onChange={e => setFormData({ ...formData, notes: e.target.value })}
-                                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none transition-all"
-                                rows="2"
-                            ></textarea>
+                                onChange={(e) => update('notes', e.target.value)}
+                                className="input-field resize-none bg-white"
+                                rows={2}
+                                placeholder="Remarques pour votre suivi…"
+                            />
                         </div>
-                        <div className="pt-4 flex justify-end gap-3">
-                            <button type="button" onClick={() => setShowModal(false)} className="px-5 py-2 text-slate-600 hover:text-slate-800 font-semibold">Annuler</button>
-                            <button type="submit" className="px-6 py-2 bg-gradient-to-r from-rose-500 to-rose-600 text-white rounded-xl font-semibold hover:from-rose-600 hover:to-rose-700 transition-all shadow-sm">Ajouter</button>
+
+                        <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-2">
+                            <button
+                                type="button"
+                                onClick={closeForm}
+                                disabled={saving}
+                                className="btn-secondary text-sm py-2.5 sm:min-w-[120px] disabled:opacity-50"
+                            >
+                                Annuler
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={saving}
+                                className="btn-primary text-sm inline-flex items-center justify-center gap-2 py-2.5 sm:min-w-[140px] disabled:opacity-50"
+                            >
+                                {saving ? (
+                                    <>
+                                        <Loader2 size={16} className="animate-spin" />
+                                        Enregistrement…
+                                    </>
+                                ) : (
+                                    <>
+                                        <CheckCircle2 size={16} />
+                                        Enregistrer
+                                    </>
+                                )}
+                            </button>
                         </div>
                     </form>
-                </div>
-            </Modal>
+                </GlassCard>
+            )}
+
+            <GlassCard className="p-5 sm:p-6">
+                <h3 className="text-sm font-bold text-brand-ink mb-4">
+                    Mes traitements {treatments.length > 0 && `(${treatments.length})`}
+                </h3>
+
+                {treatments.length === 0 ? (
+                    <div className="text-center py-10 px-4 border border-dashed border-brand-border rounded-xl">
+                        <Pill size={36} className="mx-auto text-brand-muted/40 mb-3" />
+                        <p className="text-brand-ink font-semibold mb-1">Aucun traitement enregistré</p>
+                        <p className="text-sm text-brand-muted mb-5">
+                            Ajoutez votre THS, vos médicaments ou vos habitudes de bien-être.
+                        </p>
+                        {!showForm && (
+                            <button
+                                type="button"
+                                onClick={openForm}
+                                className="btn-primary text-sm inline-flex items-center gap-2"
+                            >
+                                <Plus size={16} />
+                                Ajouter mon premier traitement
+                            </button>
+                        )}
+                    </div>
+                ) : (
+                    <div className="space-y-3">
+                        {treatments.map((treatment) => (
+                            <div
+                                key={treatment.id}
+                                className="p-4 border border-brand-border rounded-xl bg-brand-bg/50 hover:bg-white transition-colors"
+                            >
+                                <div className="flex justify-between items-start gap-3">
+                                    <div className="min-w-0">
+                                        <h4 className="font-bold text-brand-ink">{treatment.name}</h4>
+                                        <p className="text-sm text-brand-muted mt-0.5">
+                                            {TYPE_LABELS[treatment.treatment_type] || treatment.treatment_type} ·
+                                            Depuis le{' '}
+                                            {new Date(treatment.start_date).toLocaleDateString('fr-FR', {
+                                                day: 'numeric',
+                                                month: 'short',
+                                                year: 'numeric',
+                                            })}
+                                        </p>
+                                    </div>
+                                    <span
+                                        className={`px-3 py-1 text-xs font-bold rounded-full shrink-0 ${
+                                            treatment.status === 'active'
+                                                ? 'bg-green-100 text-green-700'
+                                                : 'bg-brand-bg text-brand-muted border border-brand-border'
+                                        }`}
+                                    >
+                                        {treatment.status === 'active' ? 'Actif' : 'Arrêté'}
+                                    </span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </GlassCard>
         </div>
     );
 }

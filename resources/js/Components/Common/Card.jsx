@@ -2,10 +2,10 @@ import React from 'react';
 
 export default function Card({ title, children, className = '', headerAction = null }) {
     return (
-        <div className={`bg-white overflow-hidden shadow-sm rounded-2xl border border-slate-200 ${className}`}>
+        <div className={`glass-card overflow-hidden ${className}`}>
             {(title || headerAction) && (
-                <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                    {title && <h3 className="text-lg font-bold text-slate-900">{title}</h3>}
+                <div className="px-6 py-4 border-b border-brand-border flex justify-between items-center bg-brand-bg/40">
+                    {title && <h3 className="text-lg font-bold text-brand-ink">{title}</h3>}
                     {headerAction && <div>{headerAction}</div>}
                 </div>
             )}

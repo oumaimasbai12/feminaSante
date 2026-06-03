@@ -4,18 +4,23 @@ namespace App\Http\Controllers\Api\Menopause;
 
 use App\Http\Controllers\Controller;
 use App\Models\Menopause\Menopause;
+use App\Services\MenopauseService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class MenopauseController extends Controller
 {
+    public function __construct(private readonly MenopauseService $menopauseService)
+    {
+    }
+
     public function index(Request $request): JsonResponse
     {
         $menopauses = Menopause::where('user_id', $request->user()->id)
             ->orderByRaw("CASE WHEN status = 'ongoing' THEN 0 ELSE 1 END")
             ->latest('diagnosis_date')
             ->latest()
-            ->with(['symptomLogs' => fn($q) => $q->latest('log_date')->take(14), 'treatments'])
+            ->with(['symptomLogs' => fn ($q) => $q->latest('log_date')->take(14), 'treatments'])
             ->get();
 
         return response()->json($menopauses);
@@ -24,6 +29,13 @@ class MenopauseController extends Controller
     public function store(Request $request): JsonResponse
     {
         $user = $request->user();
+
+        if (! $this->menopauseService->isUserEligible($user)) {
+            return response()->json([
+                'message' => 'Le suivi ménopause est disponible à partir de '.config('menopause.min_tracking_age', 45).' ans.',
+            ], 403);
+        }
+
         $data = $this->validateMenopause($request);
 
         if (($data['status'] ?? 'ongoing') === 'ongoing' && $user->menopauses()->where('status', 'ongoing')->exists()) {
@@ -32,9 +44,8 @@ class MenopauseController extends Controller
             ], 422);
         }
 
-        $menopause = Menopause::create([
+        $menopause = $this->menopauseService->createProfile($user->id, [
             ...$data,
-            'user_id' => $user->id,
             'stage' => $data['stage'] ?? 'perimenopause',
             'status' => $data['status'] ?? 'ongoing',
             'cycle_irregularity' => $data['cycle_irregularity'] ?? false,
@@ -87,11 +98,11 @@ class MenopauseController extends Controller
             }
         }
 
-        $menopause->update($data);
+        $menopause = $this->menopauseService->applyProfiling($menopause, $data);
 
         return response()->json([
             'message' => 'Menopause record updated successfully.',
-            'menopause' => $menopause->fresh(),
+            'menopause' => $menopause,
         ]);
     }
 
@@ -115,6 +126,8 @@ class MenopauseController extends Controller
         return $request->validate([
             'last_period_date' => [$required, 'date'],
             'diagnosis_date' => ['nullable', 'date'],
+            'age_at_onset' => ['nullable', 'integer', 'between:35,65'],
+            'symptom_history_months' => ['nullable', 'integer', 'between:0,360'],
             'stage' => ['nullable', 'in:perimenopause,menopause,postmenopause'],
             'status' => ['nullable', 'in:ongoing,completed'],
             'symptoms' => ['nullable', 'array'],

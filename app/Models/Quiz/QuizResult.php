@@ -20,8 +20,9 @@ class QuizResult extends Model
         'quiz_id',
         'score',
         'total_points',
-        'percentage',
-        'answers',
+            'percentage',
+            'status',
+            'answers',
         'time_spent',
         'completed_at',
     ];

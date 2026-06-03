@@ -114,6 +114,8 @@ class CycleServiceTest extends TestCase
 
     public function test_get_predictions(): void
     {
+        Carbon::setTestNow('2026-03-01');
+
         $cycles = collect([
             Cycle::factory()->make(['start_date' => '2026-01-01', 'end_date' => '2026-01-06']),
             Cycle::factory()->make(['start_date' => '2026-01-29', 'end_date' => '2026-02-03']),
@@ -122,12 +124,15 @@ class CycleServiceTest extends TestCase
 
         $predictions = $this->cycleService->getPredictions($cycles);
 
-        $this->assertCount(3, $predictions);
+        $this->assertCount(36, $predictions);
 
         $periodPrediction = collect($predictions)->firstWhere('type', 'period');
         $this->assertEquals('2026-03-26', $periodPrediction['predicted_date']);
+        $this->assertEquals('2026-03-31', $periodPrediction['end_date']);
 
         $ovulationPrediction = collect($predictions)->firstWhere('type', 'ovulation');
         $this->assertEquals('2026-03-12', $ovulationPrediction['predicted_date']);
+
+        Carbon::setTestNow();
     }
 }

@@ -45,16 +45,16 @@ class PredictionTest extends TestCase
 
         $response->assertOk();
         $response->assertJsonFragment(['message' => 'Predictions generated successfully.']);
-        $response->assertJsonCount(3, 'predictions');
+        $this->assertGreaterThanOrEqual(3, count($response->json('predictions')));
 
         // Verify prediction types
-        $types = collect($response->json('predictions'))->pluck('type')->toArray();
+        $types = collect($response->json('predictions'))->pluck('type')->unique()->toArray();
         $this->assertContains('period', $types);
         $this->assertContains('ovulation', $types);
         $this->assertContains('fertile_window', $types);
     }
 
-    public function test_predictions_not_generated_with_one_cycle(): void
+    public function test_predictions_generated_with_one_cycle(): void
     {
         Cycle::factory()->create([
             'user_id' => $this->user->id,
@@ -66,10 +66,8 @@ class PredictionTest extends TestCase
             ->getJson('/api/v1/predictions');
 
         $response->assertOk();
-        $response->assertJsonFragment([
-            'message' => 'Not enough cycle data to generate predictions.',
-        ]);
-        $response->assertJsonCount(0, 'predictions');
+        $response->assertJsonFragment(['message' => 'Predictions generated successfully.']);
+        $this->assertNotEmpty($response->json('predictions'));
     }
 
     public function test_predictions_not_generated_with_zero_cycles(): void

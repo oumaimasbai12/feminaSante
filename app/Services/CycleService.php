@@ -93,44 +93,73 @@ class CycleService
     }
 
     /**
-     * Get all predictions (period, ovulation, fertile window).
+     * Get predictions for upcoming cycles (period, ovulation, fertile window).
      */
-    public function getPredictions(Collection $cycles): array
+    public function getPredictions(Collection $cycles, int $futureCycles = 12): array
     {
-        if ($cycles->count() < 2) {
+        if ($cycles->isEmpty()) {
             return [];
         }
 
-        $averageCycleLength = $this->calculateAverageCycleLength($cycles);
+        $averageCycleLength = $cycles->count() >= 2
+            ? ($this->calculateAverageCycleLength($cycles) ?? 28)
+            : 28;
+
         $lastCycle = $cycles->last();
+        $periodLength = $this->getAveragePeriodLength($cycles);
+        $confidence = $cycles->count() >= 5 ? 'high' : ($cycles->count() >= 2 ? 'medium' : 'low');
 
         $nextPeriod = $this->calculateNextPeriod($lastCycle, $averageCycleLength);
-        $ovulation = $this->calculateOvulationDate($nextPeriod);
-        $fertileWindow = $this->calculateFertileWindow($ovulation);
+        while ($nextPeriod->lt(Carbon::today()->startOfDay())) {
+            $nextPeriod = $nextPeriod->copy()->addDays($averageCycleLength);
+        }
 
-        $confidence = $cycles->count() >= 5 ? 'high' : 'medium';
+        $predictions = [];
 
-        return [
-            [
+        for ($i = 0; $i < $futureCycles; $i++) {
+            $periodStart = $nextPeriod->copy()->addDays($i * $averageCycleLength);
+            $periodEnd = $periodStart->copy()->addDays($periodLength - 1);
+            $ovulation = $this->calculateOvulationDate($periodStart);
+            $fertileWindow = $this->calculateFertileWindow($ovulation);
+
+            $predictions[] = [
                 'type' => 'period',
-                'predicted_date' => $nextPeriod->toDateString(),
+                'predicted_date' => $periodStart->toDateString(),
+                'end_date' => $periodEnd->toDateString(),
                 'confidence' => $confidence,
                 'cycle_length_avg' => $averageCycleLength,
-            ],
-            [
+            ];
+            $predictions[] = [
                 'type' => 'ovulation',
                 'predicted_date' => $ovulation->toDateString(),
                 'confidence' => $confidence,
                 'cycle_length_avg' => $averageCycleLength,
-            ],
-            [
+            ];
+            $predictions[] = [
                 'type' => 'fertile_window',
                 'predicted_date' => $fertileWindow['start']->toDateString(),
                 'end_date' => $fertileWindow['end']->toDateString(),
                 'confidence' => $confidence,
                 'cycle_length_avg' => $averageCycleLength,
-            ],
-        ];
+            ];
+        }
+
+        return $predictions;
+    }
+
+    private function getAveragePeriodLength(Collection $cycles): int
+    {
+        $lengths = $cycles
+            ->filter(fn (Cycle $cycle) => $cycle->end_date)
+            ->map(fn (Cycle $cycle) => Carbon::parse($cycle->start_date)->diffInDays(Carbon::parse($cycle->end_date)) + 1)
+            ->filter(fn (int $length) => $length >= 1 && $length <= 10)
+            ->values();
+
+        if ($lengths->isEmpty()) {
+            return 5;
+        }
+
+        return (int) round($lengths->avg());
     }
 
     /**

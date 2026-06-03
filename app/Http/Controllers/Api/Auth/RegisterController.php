@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -19,6 +20,7 @@ class RegisterController extends Controller
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'motDePasse' => ['required_without:password', 'string', 'min:8', 'confirmed'],
             'password' => ['required_without:motDePasse', 'string', 'min:8', 'confirmed'],
+            'age' => ['required', 'integer', 'min:13', 'max:120'],
             'birth_date' => ['nullable', 'date'],
             'gender' => ['nullable', 'in:female,male,other'],
             'blood_type' => ['nullable', 'string', 'max:5'],
@@ -30,12 +32,16 @@ class RegisterController extends Controller
 
         $name = $data['nom'] ?? $data['name'];
         $hashedPassword = Hash::make($data['motDePasse'] ?? $data['password']);
+        $age = (int) $data['age'];
+        $birthDate = isset($data['birth_date'])
+            ? Carbon::parse($data['birth_date'])
+            : Carbon::today()->subYears($age);
 
         $payload = [
             'nom' => $name,
             'email' => $data['email'],
             'motDePasse' => $hashedPassword,
-            'birth_date' => $data['birth_date'] ?? null,
+            'birth_date' => $birthDate,
             'gender' => $data['gender'] ?? 'female',
             'blood_type' => $data['blood_type'] ?? null,
             'emergency_contacts' => $data['emergency_contacts'] ?? null,
@@ -58,8 +64,9 @@ class RegisterController extends Controller
 
         return response()->json([
             'message' => 'User registered successfully.',
-            'user' => $user,
+            'user' => $user->fresh(),
             'token' => $token,
+            'menopause_started' => false,
         ], 201);
     }
 }

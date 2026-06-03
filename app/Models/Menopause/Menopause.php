@@ -25,6 +25,8 @@ class Menopause extends Model
         'user_id',
         'last_period_date',
         'diagnosis_date',
+        'age_at_onset',
+        'symptom_history_months',
         'stage',
         'status',
         'symptoms',

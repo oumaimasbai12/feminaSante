@@ -1,92 +1,202 @@
 import React, { useState } from 'react';
-import { Link, router } from '@inertiajs/react';
-import AuthLayout from '../../Layouts/AuthLayout';
-import { Eye, EyeOff, Lock, Mail, User, ArrowRight } from 'lucide-react';
+import { Head, Link, router } from '@inertiajs/react';
+import AuthLayout, { AuthFormAlert } from '../../Layouts/AuthLayout';
+import PasswordInput from '../../Components/PasswordInput';
+import { Mail, User, ArrowRight, Cake, Moon, Info, AlertTriangle } from 'lucide-react';
+import { MENOPAUSE_MIN_AGE, menopauseEligibilityMessage } from '../../utils/menopause';
+
+const inputClass = 'input-field pl-11';
 
 export default function Register() {
-    const [form, setForm] = useState({ name: '', email: '', password: '', password_confirmation: '' });
-    const [show, setShow] = useState(false);
+    const [form, setForm] = useState({
+        name: '',
+        email: '',
+        age: '',
+        password: '',
+        password_confirmation: '',
+    });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const set = (k) => (e) => setForm({...form, [k]: e.target.value});
+    const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
+
+    const ageHint = menopauseEligibilityMessage(form.age);
+    const ageNum = parseInt(form.age, 10);
+    const isOldEnough = ageNum >= MENOPAUSE_MIN_AGE;
 
     const submit = async (e) => {
         e.preventDefault();
-        if (form.password !== form.password_confirmation) { setError('Les mots de passe ne correspondent pas'); return; }
-        setLoading(true); setError('');
+        if (form.password !== form.password_confirmation) {
+            setError('Les mots de passe ne correspondent pas.');
+            return;
+        }
+        if (!ageNum || ageNum < 13 || ageNum > 120) {
+            setError('Veuillez indiquer un âge valide (13 à 120 ans).');
+            return;
+        }
+        setLoading(true);
+        setError('');
         try {
-            const res = await window.axios.post('/api/v1/register', form);
+            const res = await window.axios.post('/api/v1/register', {
+                name: form.name,
+                email: form.email,
+                age: ageNum,
+                password: form.password,
+                password_confirmation: form.password_confirmation,
+            });
             const { token, user } = res.data;
             window.setAuthToken(token);
             localStorage.setItem('user', JSON.stringify(user));
             router.visit('/dashboard');
-        } catch(err) {
+        } catch (err) {
             const errs = err.response?.data?.errors;
-            setError(errs ? Object.values(errs).flat().join(' ') : (err.response?.data?.message || 'Inscription impossible'));
-        } finally { setLoading(false); }
+            setError(
+                errs
+                    ? Object.values(errs).flat().join(' ')
+                    : err.response?.data?.message || 'Inscription impossible.',
+            );
+        } finally {
+            setLoading(false);
+        }
     };
 
     const fields = [
         { key: 'name', label: 'Nom complet', type: 'text', icon: User, placeholder: 'Sarah Dupont' },
         { key: 'email', label: 'Adresse e-mail', type: 'email', icon: Mail, placeholder: 'sarah@exemple.com' },
-        { key: 'password', label: 'Mot de passe', type: show?'text':'password', icon: Lock, placeholder: 'Min. 8 caractères', toggle: true },
-        { key: 'password_confirmation', label: 'Confirmer le mot de passe', type: show?'text':'password', icon: Lock, placeholder: 'Répéter le mot de passe' },
     ];
 
     return (
-        <AuthLayout title='Créer votre compte' subtitle='Commencez votre parcours santé personnalisé'>
+        <AuthLayout title="Créer votre compte" subtitle="Commencez votre parcours santé personnalisé">
+            <Head title="Inscription - FeminaSante" />
+
             {error && (
-                <div className='mb-6 p-4 rounded-xl bg-rose-50 border border-rose-100 text-rose-700 text-sm'>
+                <AuthFormAlert type="error">
+                    <AlertTriangle size={16} className="shrink-0 mt-0.5" />
                     {error}
-                </div>
+                </AuthFormAlert>
             )}
-            <form onSubmit={submit} className='space-y-5'>
-                {fields.map(f => {
+
+            <form onSubmit={submit} className="space-y-5">
+                {fields.map((f) => {
                     const I = f.icon;
                     return (
                         <div key={f.key}>
-                            <label className='block text-sm font-semibold text-slate-700 mb-2'>{f.label}</label>
-                            <div className='relative'>
-                                <I size={18} className='absolute left-4 top-1/2 -translate-y-1/2 text-slate-400'/>
-                                <input 
-                                    type={f.type} 
-                                    required 
-                                    value={form[f.key]} 
-                                    onChange={set(f.key)} 
-                                    placeholder={f.placeholder} 
-                                    className='w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none transition-all pl-11 pr-11'
+                            <label htmlFor={f.key} className="block text-sm font-semibold text-brand-ink mb-2">
+                                {f.label}
+                            </label>
+                            <div className="relative">
+                                <I size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-muted" />
+                                <input
+                                    id={f.key}
+                                    type={f.type}
+                                    required
+                                    value={form[f.key]}
+                                    onChange={set(f.key)}
+                                    placeholder={f.placeholder}
+                                    autoComplete={f.key === 'email' ? 'email' : 'name'}
+                                    className={inputClass}
                                 />
-                                {f.toggle && (
-                                    <button 
-                                        type='button' 
-                                        onClick={()=>setShow(!show)} 
-                                        className='absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors'
-                                    >
-                                        {show?<EyeOff size={18}/>:<Eye size={18}/>}
-                                    </button>
-                                )}
                             </div>
                         </div>
                     );
                 })}
-                <p className='text-xs text-slate-500 pt-1'>
-                    En créant un compte, vous acceptez nos <Link href='/terms' className='text-rose-600 hover:underline font-medium'>Conditions</Link> et notre <Link href='/privacy' className='text-rose-600 hover:underline font-medium'>Politique de confidentialité</Link>.
-                </p>
-                <button 
-                    type='submit' 
-                    disabled={loading} 
-                    className='w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 text-white font-semibold hover:from-rose-600 hover:to-rose-700 transition-all shadow-sm disabled:opacity-50'
-                >
+
+                <div>
+                    <label htmlFor="password" className="block text-sm font-semibold text-brand-ink mb-2">
+                        Mot de passe
+                    </label>
+                    <PasswordInput
+                        id="password"
+                        required
+                        minLength={8}
+                        value={form.password}
+                        onChange={set('password')}
+                        placeholder="Min. 8 caractères"
+                        autoComplete="new-password"
+                    />
+                </div>
+
+                <div>
+                    <label htmlFor="password_confirmation" className="block text-sm font-semibold text-brand-ink mb-2">
+                        Confirmer le mot de passe
+                    </label>
+                    <PasswordInput
+                        id="password_confirmation"
+                        required
+                        minLength={8}
+                        value={form.password_confirmation}
+                        onChange={set('password_confirmation')}
+                        placeholder="Répéter le mot de passe"
+                        autoComplete="new-password"
+                    />
+                </div>
+
+                <div>
+                    <label htmlFor="age" className="block text-sm font-semibold text-brand-ink mb-2">
+                        Votre âge
+                    </label>
+                    <div className="relative">
+                        <Cake size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-muted" />
+                        <input
+                            id="age"
+                            type="number"
+                            required
+                            min={13}
+                            max={120}
+                            value={form.age}
+                            onChange={set('age')}
+                            placeholder="Ex. 32"
+                            className={inputClass}
+                        />
+                    </div>
+                    {ageHint && (
+                        <p
+                            className={`mt-2 text-xs font-medium px-3 py-2 rounded-lg flex items-start gap-2 border ${
+                                isOldEnough
+                                    ? 'bg-brand-bg text-brand-primary border-brand-border'
+                                    : 'bg-white/42 text-brand-muted border-brand-border'
+                            }`}
+                        >
+                            {isOldEnough ? (
+                                <Moon size={14} className="mt-0.5 flex-shrink-0" />
+                            ) : (
+                                <Info size={14} className="mt-0.5 flex-shrink-0" />
+                            )}
+                            {ageHint}
+                        </p>
+                    )}
+                </div>
+
+                <button type="submit" disabled={loading} className="w-full btn-primary py-3.5">
                     {loading ? (
-                        <><span className='w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin'></span>Création du compte...</>
+                        <>
+                            <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            Création du compte…
+                        </>
                     ) : (
-                        <>Créer mon compte <ArrowRight size={18}/></>
+                        <>
+                            Créer mon compte <ArrowRight size={18} />
+                        </>
                     )}
                 </button>
             </form>
-            <p className='mt-8 text-center text-sm text-slate-500'>
+
+            <p className="mt-6 text-center text-xs text-brand-muted leading-relaxed">
+                En créant un compte, vous acceptez nos{' '}
+                <Link href="/terms" className="text-brand-primary font-semibold hover:opacity-80">
+                    conditions d&apos;utilisation
+                </Link>{' '}
+                et notre{' '}
+                <Link href="/privacy" className="text-brand-primary font-semibold hover:opacity-80">
+                    politique de confidentialité
+                </Link>
+                .
+            </p>
+
+            <p className="mt-4 text-center text-sm text-brand-muted">
                 Déjà un compte ?{' '}
-                <Link href='/login' className='font-semibold text-rose-600 hover:text-rose-700 transition-colors'>Se connecter</Link>
+                <Link href="/login" className="font-semibold text-brand-primary hover:opacity-80 transition-opacity">
+                    Se connecter
+                </Link>
             </p>
         </AuthLayout>
     );

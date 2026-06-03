@@ -110,6 +110,29 @@ class DashboardTest extends TestCase
         $response->assertJsonCount(2, 'learning.featured_articles');
     }
 
+    public function test_dashboard_predicts_next_period_with_single_cycle(): void
+    {
+        Cycle::create([
+            'user_id' => $this->user->id,
+            'start_date' => now()->subDays(27)->toDateString(),
+            'end_date' => now()->subDays(22)->toDateString(),
+            'phase' => 'menstruation',
+        ]);
+
+        $response = $this->withToken($this->token)->getJson('/api/v1/dashboard');
+
+        $response->assertOk();
+        $response->assertJsonPath('stats.cycles_count', 1);
+        $response->assertJsonStructure([
+            'health_overview' => [
+                'predictions',
+                'days_until_next_period',
+            ],
+        ]);
+        $this->assertNotNull($response->json('health_overview.days_until_next_period'));
+        $this->assertGreaterThanOrEqual(0, $response->json('health_overview.days_until_next_period'));
+    }
+
     public function test_unauthenticated_user_cannot_access_dashboard(): void
     {
         $this->getJson('/api/v1/dashboard')->assertUnauthorized();

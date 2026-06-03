@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { Bot } from 'lucide-react';
 import AIDisclaimer from './AIDisclaimer';
 import MessageList from './MessageList';
 import SuggestedQuestions from './SuggestedQuestions';
@@ -30,8 +31,7 @@ export default function ChatAssistant() {
 
             const reply = res.data?.chat?.response ?? "Je n'ai pas pu générer une réponse. Veuillez réessayer.";
             setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
-
-        } catch (err) {
+        } catch {
             setMessages(prev => [...prev, {
                 role: 'assistant',
                 content: "Désolée, je rencontre une difficulté technique. Veuillez réessayer dans un moment."
@@ -42,18 +42,20 @@ export default function ChatAssistant() {
     };
 
     return (
-        <div className="bg-white rounded-3xl border border-gray-100 shadow-lg flex flex-col h-[700px] overflow-hidden">
-            <div className="bg-indigo-600 p-4 shrink-0 flex items-center gap-4 text-white">
-                <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center text-xl backdrop-blur-sm">🤖</div>
+        <div className="glass-card flex flex-col h-[700px] overflow-hidden p-0">
+            <div className="bg-brand-primary p-4 shrink-0 flex items-center gap-4 text-white">
+                <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                    <Bot size={24} />
+                </div>
                 <div>
                     <h3 className="font-bold text-lg">Assistant Femina Santé</h3>
-                    <p className="text-indigo-200 text-sm">
+                    <p className="text-white/70 text-sm">
                         {loading ? 'En train de répondre...' : 'Toujours là pour vous écouter.'}
                     </p>
                 </div>
             </div>
 
-            <div className="p-4 shrink-0 border-b border-gray-100">
+            <div className="p-4 shrink-0 border-b border-brand-border">
                 <AIDisclaimer />
             </div>
 

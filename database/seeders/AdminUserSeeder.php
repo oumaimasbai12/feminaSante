@@ -13,10 +13,8 @@ class AdminUserSeeder extends Seeder
         DB::table('users')->updateOrInsert(
             ['email' => 'admin@feminasante.ma'],
             [
-                'name' => 'Admin Femina',
-                'password' => Hash::make('Admin@1234'),
                 'nom' => 'Admin Femina',
-                'motDePasse' => Hash::make('Admin@1234'),
+                'motDePasse' => Hash::make('Admin123!'),
                 'is_admin' => true,
                 'gender' => 'female',
                 'langage' => 'fr',
@@ -28,10 +26,8 @@ class AdminUserSeeder extends Seeder
         DB::table('users')->updateOrInsert(
             ['email' => 'demo@feminasante.ma'],
             [
-                'name' => 'Fatima Demo',
-                'password' => Hash::make('Demo@1234'),
                 'nom' => 'Fatima Demo',
-                'motDePasse' => Hash::make('Demo@1234'),
+                'motDePasse' => Hash::make('Demo123!'),
                 'is_admin' => false,
                 'gender' => 'female',
                 'langage' => 'fr',
@@ -41,6 +37,6 @@ class AdminUserSeeder extends Seeder
             ]
         );
 
-        $this->command->info('✅ Users seeded (admin@feminasante.ma / Admin@1234)');
+        $this->command->info('✅ Users seeded (admin@feminasante.ma / Admin123!, demo@feminasante.ma / Demo123!)');
     }
 }

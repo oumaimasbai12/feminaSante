@@ -20,7 +20,7 @@ class PredictionController extends Controller
             ->orderBy('start_date')
             ->get();
 
-        if ($cycles->count() < 2) {
+        if ($cycles->isEmpty()) {
             return response()->json([
                 'message' => 'Not enough cycle data to generate predictions.',
                 'predictions' => [],

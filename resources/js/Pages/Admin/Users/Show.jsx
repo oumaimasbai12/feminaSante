@@ -1,120 +1,392 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import AdminLayout from '@/Components/Layouts/AdminLayout';
+import GlassCard from '@/Components/UI/GlassCard';
+import StatTile from '@/Components/UI/StatTile';
+import StatusBadge from '@/Components/UI/StatusBadge';
+import ConfirmDialog from '@/Components/Admin/ConfirmDialog';
+import {
+    DataTable,
+    DataTableToolbar,
+    DataTableScroll,
+} from '@/Components/UI/DataTable';
+import { TableActionButton } from '@/Components/UI/TableActions';
 import { Head, Link, router } from '@inertiajs/react';
+import {
+    Heart,
+    Baby,
+    Moon,
+    Calendar,
+    Brain,
+    Cake,
+    ChevronLeft,
+    MapPin,
+    Clock,
+    Trash2,
+    AlertTriangle,
+} from 'lucide-react';
+import { isMenopauseEligible, MENOPAUSE_MIN_AGE } from '@/utils/menopause';
 
-export default function Show({ auth, userData }) {
+function formatMemberSince(dateStr) {
+    if (!dateStr) return null;
+    return new Date(dateStr).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+}
+
+function formatDateTime(iso) {
+    if (!iso) return '—';
+    return new Date(iso).toLocaleString('fr-FR', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+}
+
+function menopauseLabel(health, patient) {
+    if (health?.active_menopause) {
+        const stage = health.active_menopause.stage?.value ?? health.active_menopause.stage;
+        return stage ? String(stage).replace(/_/g, ' ') : 'Active';
+    }
+    return isMenopauseEligible(patient) ? 'À configurer' : `Dès ${MENOPAUSE_MIN_AGE} ans`;
+}
+
+function PageSkeleton() {
+    return (
+        <div className="space-y-6 w-full animate-pulse">
+            <div className="glass-card h-32" />
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+                {[1, 2, 3, 4, 5].map((i) => (
+                    <div key={i} className="glass-card h-28" />
+                ))}
+            </div>
+            <div className="grid lg:grid-cols-2 gap-6">
+                <div className="glass-card h-40" />
+                <div className="glass-card h-40" />
+            </div>
+        </div>
+    );
+}
+
+export default function Show({ userId }) {
+    const [data, setData] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const [deleteOpen, setDeleteOpen] = useState(false);
     const [deleting, setDeleting] = useState(false);
+    const [deleteError, setDeleteError] = useState('');
 
-    const patient = userData || {
-        id: 1,
-        nom: "Marie Dupont",
-        email: "marie.dupont@test.fr",
-        is_admin: 0,
-        settings: { notifications_active: true },
-        pregnancies: [{ id: 1, current_week: 24, status: 'active' }],
-        menopauses: []
-    };
+    useEffect(() => {
+        window.axios
+            .get(`/api/v1/admin/users/${userId}`)
+            .then((r) => {
+                setData(r.data?.data || r.data);
+                setError('');
+            })
+            .catch((e) => {
+                setData(null);
+                setError(e.response?.data?.message || 'Profil inaccessible.');
+            })
+            .finally(() => setLoading(false));
+    }, [userId]);
+
+    const patient = data?.user;
+    const stats = data?.stats || {};
+    const health = data?.health_overview || {};
+    const state = data?.current_state;
+
+    const displayName = patient?.nom || patient?.name || 'Utilisatrice';
+    const ini = displayName.charAt(0).toUpperCase();
+    const memberSince = patient ? formatMemberSince(patient.created_at) : null;
+
+    const journeyStats = useMemo(() => {
+        if (!patient) return [];
+        return [
+            { label: 'Cycles', value: stats.cycles_count ?? 0, icon: Heart },
+            { label: 'Grossesses', value: stats.pregnancies_count ?? 0, icon: Baby },
+            {
+                label: 'Ménopause',
+                value: menopauseLabel(health, patient),
+                icon: Moon,
+            },
+            { label: 'Rendez-vous', value: stats.appointments_count ?? 0, icon: Calendar },
+            { label: 'Quiz', value: stats.quiz_results_count ?? 0, icon: Brain },
+        ];
+    }, [patient, stats, health]);
 
     const handleDelete = async () => {
-        if (!confirm(`Êtes-vous sûr de vouloir supprimer le profil de ${patient.nom} ?`)) {
-            return;
-        }
-        
+        if (!patient) return;
         setDeleting(true);
-        
+        setDeleteError('');
         try {
             await window.axios.delete(`/api/v1/admin/users/${patient.id}`);
             router.visit('/admin/users');
         } catch (e) {
-            console.error('Error deleting user:', e);
-            alert('Erreur lors de la suppression du profil.');
+            setDeleteError(e.response?.data?.message || 'Erreur lors de la suppression.');
+            setDeleteOpen(false);
         } finally {
             setDeleting(false);
         }
     };
 
-    return (
-        <AdminLayout
-            user={auth?.user}
-            header={
-                <div className="flex items-center gap-4">
-                    <Link href="/admin/users" className="text-slate-400 hover:text-slate-600 transition">
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+    if (loading) {
+        return (
+            <AdminLayout title="Profil utilisatrice">
+                <Head title="Profil utilisatrice - FeminaSante" />
+                <PageSkeleton />
+            </AdminLayout>
+        );
+    }
+
+    if (!patient) {
+        return (
+            <AdminLayout title="Profil utilisatrice">
+                <Head title="Profil utilisatrice - FeminaSante" />
+                <GlassCard className="p-8 text-center max-w-md mx-auto">
+                    <AlertTriangle size={32} className="text-brand-border mx-auto mb-3" />
+                    <p className="text-brand-muted mb-4">{error || 'Compte introuvable.'}</p>
+                    <Link
+                        href="/admin/users"
+                        className="text-brand-primary font-semibold hover:opacity-80 transition-opacity"
+                    >
+                        Retour à la liste
                     </Link>
-                    <h2 className="font-bold text-xl text-slate-800">Détails Patiente : {patient.nom}</h2>
-                </div>
-            }
-        >
-            <Head title={`Utilisateur ${patient.nom} - Admin`} />
+                </GlassCard>
+            </AdminLayout>
+        );
+    }
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in">
-                
-                {/* Left Col: Info */}
-                <div className="space-y-6">
-                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 text-center">
-                        <div className="w-24 h-24 rounded-full bg-slate-100 text-slate-400 mx-auto flex items-center justify-center text-4xl mb-4">
-                            👤
+    return (
+        <AdminLayout title={displayName}>
+            <Head title={`${displayName} - FeminaSante`} />
+
+            <ConfirmDialog
+                open={deleteOpen}
+                title="Supprimer le compte"
+                message={`Supprimer définitivement ${displayName} ? Cette action est irréversible.`}
+                confirmLabel="Supprimer"
+                danger
+                loading={deleting}
+                onConfirm={handleDelete}
+                onCancel={() => setDeleteOpen(false)}
+            />
+
+            <div className="space-y-6 w-full">
+                <Link
+                    href="/admin/users"
+                    className="inline-flex items-center gap-2 text-sm text-brand-primary font-semibold hover:opacity-80 transition-opacity"
+                >
+                    <ChevronLeft size={16} /> Retour aux utilisatrices
+                </Link>
+
+                {deleteError && (
+                    <div className="p-4 rounded-xl text-sm font-medium border bg-red-50/80 border-red-200 text-red-800 flex items-center gap-2">
+                        <AlertTriangle size={16} />
+                        {deleteError}
+                    </div>
+                )}
+
+                <GlassCard className="p-5">
+                    <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+                        <div className="w-16 h-16 rounded-2xl bg-brand-bg border border-brand-border flex items-center justify-center text-brand-primary text-2xl font-bold shrink-0">
+                            {ini}
                         </div>
-                        <h3 className="text-xl font-bold text-slate-900">{patient.nom}</h3>
-                        <p className="text-slate-500 mb-4">{patient.email}</p>
-                        <span className="inline-flex px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 uppercase tracking-widest">Compte Actif</span>
+                        <div className="flex-1 min-w-0">
+                            <h2 className="text-xl font-bold text-brand-ink">{displayName}</h2>
+                            <p className="text-brand-muted text-sm mt-0.5">{patient.email}</p>
+                            <div className="flex flex-wrap gap-2 mt-3">
+                                <span className="status-badge badge-inactive">Patiente</span>
+                                {patient.age != null && (
+                                    <span className="status-badge badge-inactive inline-flex items-center gap-1">
+                                        <Cake size={12} />
+                                        {patient.age} ans
+                                    </span>
+                                )}
+                                {memberSince && (
+                                    <span className="status-badge badge-completed">
+                                        Membre depuis {memberSince}
+                                    </span>
+                                )}
+                            </div>
+                            <p className="text-xs text-brand-muted mt-3">
+                                Inscrite le{' '}
+                                {new Date(patient.created_at).toLocaleDateString('fr-FR')}
+                            </p>
+                        </div>
                     </div>
+                </GlassCard>
 
-                    <div className="bg-red-50 text-red-700 rounded-2xl border border-red-200 shadow-sm p-6">
-                        <h4 className="font-bold mb-2">Zone Dangereuse</h4>
-                        <p className="text-sm text-red-600/80 mb-4 font-medium">La suppression d'un compte entraîne l'effacement complet des historiques médicaux de façon irréversible.</p>
-                        <button 
-                            onClick={handleDelete} 
-                            disabled={deleting} 
-                            className="w-full py-2 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 shadow-sm transition disabled:opacity-50"
-                        >
-                            {deleting ? 'Suppression en cours...' : 'Supprimer ce profil'}
-                        </button>
-                    </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                    {journeyStats.map((item) => (
+                        <StatTile
+                            key={item.label}
+                            label={item.label}
+                            value={item.value}
+                            icon={item.icon}
+                        />
+                    ))}
                 </div>
 
-                {/* Right Col: Usage Info */}
-                <div className="md:col-span-2 space-y-6">
-                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-                        <h3 className="text-lg font-bold text-slate-900 mb-4 border-b border-slate-100 pb-2">Suivis Actifs</h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div className={`p-4 rounded-xl border ${patient.pregnancies.length > 0 ? 'bg-indigo-50 border-indigo-200' : 'bg-slate-50 border-slate-200'}`}>
-                                <div className="font-bold flex items-center justify-between mb-2">
-                                    <span className={patient.pregnancies.length > 0 ? 'text-indigo-900' : 'text-slate-500'}>Maternité</span>
-                                    <span className="text-2xl">{patient.pregnancies.length > 0 ? '🤰' : '➖'}</span>
-                                </div>
-                                <p className={`text-sm font-medium ${patient.pregnancies.length > 0 ? 'text-indigo-700' : 'text-slate-400'}`}>
-                                    {patient.pregnancies.length > 0 ? 'Grossesse en cours détectée.' : 'Aucun suivi actif.'}
+                <div className="grid lg:grid-cols-2 gap-6">
+                    <GlassCard className="p-5">
+                        <p className="text-xs font-semibold text-brand-muted uppercase tracking-wider mb-2">
+                            Parcours actif
+                        </p>
+                        {state ? (
+                            <>
+                                <p className="font-bold text-brand-ink">{state.label}</p>
+                                {state.detail ? (
+                                    <p className="text-sm text-brand-muted mt-0.5 capitalize">
+                                        {state.detail}
+                                    </p>
+                                ) : (
+                                    <p className="text-sm text-brand-muted mt-0.5">
+                                        Aucun détail supplémentaire
+                                    </p>
+                                )}
+                                {health.current_cycle_day != null && state.mode === 'cycle' && (
+                                    <p className="text-xs text-brand-primary mt-2 font-medium">
+                                        Jour {health.current_cycle_day} du cycle
+                                        {health.days_until_next_period != null &&
+                                            health.days_until_next_period >= 0 && (
+                                                <>
+                                                    {' '}
+                                                    · Prochaines règles dans{' '}
+                                                    {health.days_until_next_period} j
+                                                </>
+                                            )}
+                                    </p>
+                                )}
+                            </>
+                        ) : (
+                            <p className="text-sm text-brand-muted">Aucun suivi actif</p>
+                        )}
+                    </GlassCard>
+
+                    {data.next_appointment ? (
+                        <GlassCard className="p-5">
+                            <p className="text-xs font-semibold text-brand-muted uppercase tracking-wider mb-2">
+                                Prochain rendez-vous
+                            </p>
+                            <p className="font-bold text-brand-ink">
+                                Dr. {data.next_appointment.gynecologist?.first_name}{' '}
+                                {data.next_appointment.gynecologist?.last_name}
+                            </p>
+                            <p className="text-sm text-brand-muted flex items-center gap-1.5 mt-1">
+                                <Clock size={14} />
+                                {formatDateTime(data.next_appointment.start_time)}
+                            </p>
+                            {data.next_appointment.gynecologist?.city && (
+                                <p className="text-sm text-brand-muted flex items-center gap-1.5 mt-1">
+                                    <MapPin size={14} />
+                                    {data.next_appointment.gynecologist.city}
+                                </p>
+                            )}
+                            <StatusBadge
+                                status={data.next_appointment.status}
+                                className="mt-3"
+                            />
+                        </GlassCard>
+                    ) : (
+                        <GlassCard className="p-5">
+                            <p className="text-xs font-semibold text-brand-muted uppercase tracking-wider mb-2">
+                                Prochain rendez-vous
+                            </p>
+                            <p className="text-sm text-brand-muted">Aucun rendez-vous à venir</p>
+                        </GlassCard>
+                    )}
+                </div>
+
+                <p className="text-sm text-brand-muted">
+                    Aperçu du parcours santé — identique à ce que voit la patiente dans son profil.
+                </p>
+
+                {(data.appointments?.length || 0) > 0 && (
+                    <DataTable>
+                        <DataTableToolbar>
+                            <div>
+                                <h3 className="font-bold text-brand-ink">Rendez-vous récents</h3>
+                                <p className="text-xs text-brand-muted mt-0.5">
+                                    {data.appointments.length} rendez-vous
                                 </p>
                             </div>
-                            
-                            <div className={`p-4 rounded-xl border ${patient.menopauses.length > 0 ? 'bg-orange-50 border-orange-200' : 'bg-slate-50 border-slate-200'}`}>
-                                <div className="font-bold flex items-center justify-between mb-2">
-                                    <span className={patient.menopauses.length > 0 ? 'text-orange-900' : 'text-slate-500'}>Ménopause</span>
-                                    <span className="text-2xl">{patient.menopauses.length > 0 ? '🍂' : '➖'}</span>
+                        </DataTableToolbar>
+                        <DataTableScroll>
+                            <table className="fs-table">
+                                <thead>
+                                    <tr>
+                                        <th>Praticien</th>
+                                        <th className="hidden sm:table-cell">Date</th>
+                                        <th className="hidden md:table-cell">Motif</th>
+                                        <th>Statut</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {data.appointments.map((a) => (
+                                        <tr key={a.id}>
+                                            <td>
+                                                <p className="font-semibold text-brand-ink">
+                                                    Dr. {a.gynecologist?.first_name}{' '}
+                                                    {a.gynecologist?.last_name}
+                                                </p>
+                                                <p className="text-xs text-brand-muted sm:hidden">
+                                                    {formatDateTime(a.start_time)}
+                                                </p>
+                                            </td>
+                                            <td className="text-brand-muted hidden sm:table-cell whitespace-nowrap">
+                                                {formatDateTime(a.start_time)}
+                                            </td>
+                                            <td className="text-brand-muted hidden md:table-cell max-w-[180px] truncate">
+                                                {a.reason || '—'}
+                                            </td>
+                                            <td>
+                                                <StatusBadge status={a.status} />
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </DataTableScroll>
+                    </DataTable>
+                )}
+
+                {(data.cycles?.length || 0) > 0 && (
+                    <GlassCard className="p-6">
+                        <h3 className="text-base font-bold text-brand-ink mb-4">Cycles récents</h3>
+                        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                            {data.cycles.map((c) => (
+                                <div
+                                    key={c.id}
+                                    className="p-3 rounded-xl bg-brand-bg/80 border border-brand-border text-sm"
+                                >
+                                    <span className="font-semibold text-brand-ink">
+                                        {new Date(c.start_date).toLocaleDateString('fr-FR')}
+                                    </span>
+                                    {c.flow_intensity && (
+                                        <p className="text-xs text-brand-muted mt-1">
+                                            Flux {c.flow_intensity}
+                                        </p>
+                                    )}
+                                    {c.mood && (
+                                        <p className="text-xs text-brand-muted">Humeur {c.mood}</p>
+                                    )}
                                 </div>
-                                <p className={`text-sm font-medium ${patient.menopauses.length > 0 ? 'text-orange-700' : 'text-slate-400'}`}>
-                                    {patient.menopauses.length > 0 ? 'Protocole actif détecté.' : 'Aucun protocole déclaré.'}
-                                </p>
-                            </div>
+                            ))}
                         </div>
-                    </div>
+                    </GlassCard>
+                )}
 
-                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-                        <h3 className="text-lg font-bold text-slate-900 mb-4 border-b border-slate-100 pb-2">Sécurité & RGPD</h3>
-                        <div className="space-y-3 font-medium text-sm text-slate-700">
-                            <div className="flex justify-between p-2 hover:bg-slate-50 rounded-lg">
-                                <span className="text-slate-500">Authentification 2FA</span>
-                                <span className="text-red-500 font-bold">Désactivée</span>
-                            </div>
-                            <div className="flex justify-between p-2 hover:bg-slate-50 rounded-lg">
-                                <span className="text-slate-500">Avertissements (LogSensitiveData)</span>
-                                <span>0 flag suspect</span>
-                            </div>
-                        </div>
-                    </div>
+                <div className="flex justify-end">
+                    <TableActionButton
+                        type="button"
+                        icon={Trash2}
+                        danger
+                        onClick={() => setDeleteOpen(true)}
+                        className="px-5 py-3"
+                    >
+                        Supprimer le compte
+                    </TableActionButton>
                 </div>
-
             </div>
         </AdminLayout>
     );

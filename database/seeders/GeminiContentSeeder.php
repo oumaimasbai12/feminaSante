@@ -25,7 +25,8 @@ class GeminiContentSeeder extends Seeder
     public function __construct()
     {
         $this->apiKey = config('services.gemini.key', '');
-        $this->apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+        $model = config('services.gemini.model', 'gemini-3.1-flash-lite-preview');
+        $this->apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent";
     }
 
     public function run(): void

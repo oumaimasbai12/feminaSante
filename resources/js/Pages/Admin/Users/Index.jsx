@@ -1,100 +1,151 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import AdminLayout from '@/Components/Layouts/AdminLayout';
+import ConfirmDialog from '@/Components/Admin/ConfirmDialog';
+import {
+    DataTable, DataTableToolbar, DataTableScroll, DataTableEmpty, DataTableLoading, DataTablePagination,
+} from '@/Components/UI/DataTable';
+import { TableActionGroup, TableActionLink, TableActionButton } from '@/Components/UI/TableActions';
 import { Head, Link } from '@inertiajs/react';
+import { Search, Eye, Trash2 } from 'lucide-react';
 
-export default function Index({ auth, users }) {
-    const [deleting, setDeleting] = useState(null);
+export default function Index() {
+    const params = new URLSearchParams(window.location.search);
+    const [users, setUsers] = useState([]);
+    const [meta, setMeta] = useState({});
+    const [loading, setLoading] = useState(true);
+    const [query, setQuery] = useState(params.get('search') || '');
+    const [page, setPage] = useState(parseInt(params.get('page') || '1', 10));
+    const [deleteTarget, setDeleteTarget] = useState(null);
+    const [deleting, setDeleting] = useState(false);
+    const [toast, setToast] = useState(null);
 
-    // Scaffold fallback if no real users provided by inertia prop
-    const mockUsers = [
-        { id: 1, nom: "Marie Dupont", email: "marie.dupont@test.fr", is_admin: 0, created_at: "2026-01-10T14:30:00Z" },
-        { id: 2, nom: "Sophie Lemaire", email: "sophie.L@test.fr", is_admin: 0, created_at: "2026-02-15T09:12:00Z" },
-        { id: 3, nom: "Administratrice", email: "admin@femina.fr", is_admin: 1, created_at: "2025-11-20T10:00:00Z" },
-    ];
+    const load = useCallback(() => {
+        setLoading(true);
+        const qs = new URLSearchParams({ page: String(page) });
+        if (query) qs.set('search', query);
 
-    const dataList = users?.data ? users.data : mockUsers;
+        window.axios.get(`/api/v1/admin/users?${qs}`)
+            .then(r => {
+                const paginated = r.data?.data || {};
+                setUsers(paginated.data || []);
+                setMeta({
+                    current_page: paginated.current_page,
+                    last_page: paginated.last_page,
+                    total: paginated.total,
+                });
+            })
+            .catch(() => { setUsers([]); setMeta({}); })
+            .finally(() => setLoading(false));
+    }, [page, query]);
 
-    const handleDelete = async (user) => {
-        if (!confirm(`Êtes-vous sûr de vouloir supprimer le profil de ${user.nom} ?`)) {
-            return;
-        }
-        
-        setDeleting(user.id);
-        
+    useEffect(load, [load]);
+
+    const applyFilters = (e) => {
+        e?.preventDefault();
+        setPage(1);
+        load();
+    };
+
+    const confirmDelete = async () => {
+        if (!deleteTarget) return;
+        setDeleting(true);
         try {
-            await window.axios.delete(`/api/v1/admin/users/${user.id}`);
-            window.location.reload();
+            await window.axios.delete(`/api/v1/admin/users/${deleteTarget.id}`);
+            setToast(`Profil de ${deleteTarget.nom} supprimé.`);
+            setDeleteTarget(null);
+            load();
         } catch (e) {
-            console.error('Error deleting user:', e);
-            alert('Erreur lors de la suppression du profil.');
+            setToast(e.response?.data?.message || 'Erreur lors de la suppression.');
         } finally {
-            setDeleting(null);
+            setDeleting(false);
+            setTimeout(() => setToast(null), 4000);
         }
     };
 
     return (
-        <AdminLayout
-            user={auth?.user}
-            header={<h2 className="font-bold text-xl text-slate-800">Gestion des Utilisatrices</h2>}
-        >
+        <AdminLayout header={<h2 className="font-bold text-xl text-brand-ink">Utilisatrices</h2>}>
             <Head title="Utilisatrices - Admin" />
+            <ConfirmDialog
+                open={!!deleteTarget}
+                title="Supprimer le compte"
+                message={`Supprimer définitivement le profil de ${deleteTarget?.nom} ? Cette action est irréversible.`}
+                confirmLabel="Supprimer"
+                danger
+                loading={deleting}
+                onConfirm={confirmDelete}
+                onCancel={() => setDeleteTarget(null)}
+            />
+            {toast && (
+                <div className="mb-4 p-4 rounded-xl bg-brand-ink text-white text-sm font-medium">{toast}</div>
+            )}
 
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden animate-in fade-in">
-                <div className="p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+            <DataTable>
+                <DataTableToolbar>
                     <div>
-                        <h3 className="text-lg font-bold text-slate-900">Base de données membres</h3>
-                        <p className="text-sm text-slate-500 mt-1">Liste complète des utilisatrices de la plateforme.</p>
+                        <h3 className="font-bold text-brand-ink">Patientes inscrites</h3>
+                        <p className="text-sm text-brand-muted">
+                            {meta.total ?? 0} patiente{(meta.total ?? 0) > 1 ? 's' : ''} · Les praticiens sont gérés dans{' '}
+                            <Link href="/admin/gynecologists" className="text-brand-primary hover:opacity-80 transition-opacity">Praticiens</Link>
+                        </p>
                     </div>
-                    <div className="flex gap-2">
-                        <input type="text" placeholder="Rechercher (nom, email)..." className="rounded-lg border-slate-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 text-sm w-64" />
-                        <button className="bg-slate-900 text-white px-4 py-2 rounded-lg font-medium hover:bg-slate-800 transition">Chercher</button>
-                    </div>
-                </div>
+                    <form onSubmit={applyFilters} className="flex flex-col sm:flex-row gap-2">
+                        <div className="relative">
+                            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-muted" />
+                            <input
+                                type="text"
+                                value={query}
+                                onChange={e => setQuery(e.target.value)}
+                                placeholder="Rechercher..."
+                                className="input-field pl-9 w-full sm:w-56 py-2.5"
+                            />
+                        </div>
+                        <button type="submit" className="btn-primary py-2.5">Rechercher</button>
+                    </form>
+                </DataTableToolbar>
 
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm whitespace-nowrap">
-                        <thead className="bg-white text-slate-500 font-medium border-b border-slate-200">
-                            <tr>
-                                <th className="px-6 py-4 uppercase tracking-wider">Nom complet</th>
-                                <th className="px-6 py-4 uppercase tracking-wider">Adresse E-mail</th>
-                                <th className="px-6 py-4 uppercase tracking-wider">Rôle</th>
-                                <th className="px-6 py-4 uppercase tracking-wider">Date d'inscription</th>
-                                <th className="px-6 py-4 align-middle text-right uppercase tracking-wider">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 text-slate-700">
-                            {dataList.map((user) => (
-                                <tr key={user.id} className="hover:bg-slate-50 transition">
-                                    <td className="px-6 py-4 font-bold text-slate-900">{user.nom}</td>
-                                    <td className="px-6 py-4">{user.email}</td>
-                                    <td className="px-6 py-4">
-                                        <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-bold leading-none ${user.is_admin ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-800'}`}>
-                                            {user.is_admin ? 'Admin' : 'Patiente'}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4">{new Date(user.created_at).toLocaleDateString('fr-FR')}</td>
-                                    <td className="px-6 py-4 text-right">
-                                        <Link href={`/admin/users/${user.id}`} className="text-blue-600 hover:text-blue-900 font-semibold mr-4">Consulter</Link>
-                                        {!user.is_admin && (
-                                            <button 
-                                                onClick={() => handleDelete(user)} 
-                                                disabled={deleting === user.id} 
-                                                className="text-red-500 hover:text-red-700 font-semibold disabled:opacity-50"
-                                            >
-                                                {deleting === user.id ? 'Suppression...' : 'Bannir / Suppr.'}
-                                            </button>
-                                        )}
-                                    </td>
+                {loading ? (
+                    <DataTableLoading />
+                ) : users.length === 0 ? (
+                    <DataTableEmpty>Aucune patiente trouvée.</DataTableEmpty>
+                ) : (
+                    <DataTableScroll>
+                        <table className="fs-table">
+                            <thead>
+                                <tr>
+                                    <th>Nom</th>
+                                    <th>E-mail</th>
+                                    <th>Inscription</th>
+                                    <th className="text-right">Actions</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-                
-                <div className="p-4 border-t border-slate-200 bg-slate-50 text-center text-sm text-slate-500">
-                    Pagination ou "Charge plus de résultats" viendra ici via Inertia Links.
-                </div>
-            </div>
+                            </thead>
+                            <tbody>
+                                {users.map(user => (
+                                    <tr key={user.id}>
+                                        <td className="font-semibold text-brand-ink">{user.nom}</td>
+                                        <td className="text-brand-muted">{user.email}</td>
+                                        <td className="text-brand-muted">{new Date(user.created_at).toLocaleDateString('fr-FR')}</td>
+                                        <td className="text-right">
+                                            <TableActionGroup>
+                                                <TableActionLink href={`/admin/users/${user.id}`} icon={Eye}>Voir</TableActionLink>
+                                                <TableActionButton icon={Trash2} danger onClick={() => setDeleteTarget(user)}>Supprimer</TableActionButton>
+                                            </TableActionGroup>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </DataTableScroll>
+                )}
+
+                {!loading && (
+                    <DataTablePagination
+                        page={meta.current_page || page}
+                        lastPage={meta.last_page || 1}
+                        onPrev={() => setPage(p => p - 1)}
+                        onNext={() => setPage(p => p + 1)}
+                    />
+                )}
+            </DataTable>
         </AdminLayout>
     );
 }

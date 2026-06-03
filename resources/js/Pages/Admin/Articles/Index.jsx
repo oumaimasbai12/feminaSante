@@ -1,134 +1,153 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from '@inertiajs/react';
 import AdminLayout from '@/Components/Layouts/AdminLayout';
-import { usePage } from '@inertiajs/react';
-import { Plus, Search, Trash2, Pencil, Eye, Star, ToggleLeft, ToggleRight } from 'lucide-react';
+import ConfirmDialog from '@/Components/Admin/ConfirmDialog';
+import {
+    DataTable, DataTableToolbar, DataTableScroll, DataTableEmpty, DataTableLoading,
+} from '@/Components/UI/DataTable';
+import { TableActionGroup, TableActionLink, TableActionButton } from '@/Components/UI/TableActions';
+import { Plus, Search, Trash2, Pencil, BookOpen, CheckCircle2 } from 'lucide-react';
+
+const getCategoryName = (article) => article?.category?.nom || 'Santé';
 
 export default function AdminArticles() {
-    const { auth } = usePage().props;
-    const user = auth?.user;
-
     const [articles, setArticles] = useState([]);
     const [loading, setLoading] = useState(true);
     const [query, setQuery] = useState('');
     const [msg, setMsg] = useState(null);
+    const [deleteTarget, setDeleteTarget] = useState(null);
+    const [deleting, setDeleting] = useState(false);
 
     const load = () => {
         setLoading(true);
         window.axios.get('/api/v1/articles')
             .then(r => setArticles(Array.isArray(r.data) ? r.data : (r.data.data || [])))
-            .catch(() => {})
+            .catch(() => setArticles([]))
             .finally(() => setLoading(false));
     };
 
     useEffect(load, []);
 
-    const toggleStatus = async (article) => {
-        const newStatus = article.status === 'published' ? 'draft' : 'published';
-        await window.axios.put(`/api/v1/admin/articles/${article.id}`, { status: newStatus });
-        setArticles(articles.map(a => a.id === article.id ? { ...a, status: newStatus } : a));
-    };
-
-    const toggleFeatured = async (article) => {
-        await window.axios.put(`/api/v1/admin/articles/${article.id}`, { is_featured: !article.is_featured });
-        setArticles(articles.map(a => a.id === article.id ? { ...a, is_featured: !a.is_featured } : a));
-    };
-
-    const destroy = async (article) => {
-        if (!confirm(`Supprimer "${article.title}" ?`)) return;
-        await window.axios.delete(`/api/v1/admin/articles/${article.id}`);
-        setArticles(articles.filter(a => a.id !== article.id));
-        setMsg('Article supprimé.');
-        setTimeout(() => setMsg(null), 3000);
+    const destroy = async () => {
+        if (!deleteTarget) return;
+        setDeleting(true);
+        try {
+            await window.axios.delete(`/api/v1/admin/articles/${deleteTarget.id}`);
+            setArticles(prev => prev.filter(a => a.id !== deleteTarget.id));
+            setMsg('Article supprimé.');
+            setDeleteTarget(null);
+            setTimeout(() => setMsg(null), 3000);
+        } finally {
+            setDeleting(false);
+        }
     };
 
     const filtered = articles.filter(a => {
         const q = query.toLowerCase();
-        return !q || a.title?.toLowerCase().includes(q) || a.category?.nom?.toLowerCase().includes(q);
+        return !q
+            || a.title?.toLowerCase().includes(q)
+            || a.excerpt?.toLowerCase().includes(q)
+            || getCategoryName(a).toLowerCase().includes(q);
     });
 
     return (
-        <AdminLayout user={user}>
-            <div className="flex items-center justify-between mb-6">
-                <h1 className="text-2xl font-extrabold text-slate-900">Articles</h1>
-                <Link href="/admin/articles/create" className="inline-flex items-center gap-2 bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition shadow-sm">
-                    <Plus size={16} /> Nouvel article
-                </Link>
-            </div>
+        <AdminLayout title="Contenus">
+            <ConfirmDialog
+                open={!!deleteTarget}
+                title="Supprimer l'article"
+                message={`Supprimer « ${deleteTarget?.title} » ?`}
+                confirmLabel="Supprimer"
+                danger
+                loading={deleting}
+                onConfirm={destroy}
+                onCancel={() => setDeleteTarget(null)}
+            />
 
-            {msg && <div className="mb-4 p-4 rounded-xl bg-green-50 text-green-700 text-sm font-semibold border border-green-200">{msg}</div>}
+            <p className="text-brand-muted text-sm mb-6">
+                Gérez les articles affichés dans l&apos;espace patientes.
+            </p>
 
-            <div className="bg-white rounded-xl border border-slate-200 p-4 mb-5 shadow-sm">
-                <div className="relative">
-                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                    <input value={query} onChange={e => setQuery(e.target.value)}
-                        placeholder="Rechercher par titre ou catégorie..."
-                        className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-100 focus:border-rose-500" />
+            {msg && (
+                <div className="mb-4 p-3 rounded-xl bg-emerald-50 text-emerald-700 text-sm font-medium border border-emerald-200 flex items-center gap-2">
+                    <CheckCircle2 size={16} />
+                    {msg}
                 </div>
-            </div>
+            )}
 
-            {loading && <div className="text-center py-12 text-slate-400">Chargement...</div>}
+            <DataTable>
+                <DataTableToolbar>
+                    <div>
+                        <h3 className="font-bold text-brand-ink">Tous les articles</h3>
+                        <p className="text-sm text-brand-muted">
+                            {filtered.length} article{filtered.length > 1 ? 's' : ''}
+                            {query ? ' (filtrés)' : ''}
+                        </p>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
+                        <div className="relative flex-1 sm:min-w-[240px]">
+                            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-muted" />
+                            <input
+                                value={query}
+                                onChange={e => setQuery(e.target.value)}
+                                placeholder="Titre, catégorie, extrait..."
+                                className="input-field pl-9 w-full py-2.5"
+                            />
+                        </div>
+                        <Link href="/admin/articles/create" className="btn-primary shrink-0 py-2.5 justify-center">
+                            <Plus size={16} /> Nouvel article
+                        </Link>
+                    </div>
+                </DataTableToolbar>
 
-            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-                <table className="w-full text-sm">
-                    <thead className="bg-slate-50 border-b border-slate-200">
-                        <tr>
-                            <th className="text-left px-4 py-3 font-semibold text-slate-600">Titre</th>
-                            <th className="text-left px-4 py-3 font-semibold text-slate-600 hidden md:table-cell">Catégorie</th>
-                            <th className="text-left px-4 py-3 font-semibold text-slate-600 hidden md:table-cell">Vues</th>
-                            <th className="text-left px-4 py-3 font-semibold text-slate-600">Statut</th>
-                            <th className="text-left px-4 py-3 font-semibold text-slate-600">À la une</th>
-                            <th className="text-right px-4 py-3 font-semibold text-slate-600">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                        {filtered.map(a => (
-                            <tr key={a.id} className="hover:bg-slate-50 transition">
-                                <td className="px-4 py-3">
-                                    <p className="font-semibold text-slate-800 line-clamp-1">{a.title}</p>
-                                    <p className="text-xs text-slate-400 mt-0.5">{new Date(a.created_at).toLocaleDateString('fr-FR')}</p>
-                                </td>
-                                <td className="px-4 py-3 hidden md:table-cell">
-                                    <span className="px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 text-xs font-medium">
-                                        {a.category?.nom || '—'}
-                                    </span>
-                                </td>
-                                <td className="px-4 py-3 hidden md:table-cell">
-                                    <span className="flex items-center gap-1 text-slate-500"><Eye size={13} />{a.views_count}</span>
-                                </td>
-                                <td className="px-4 py-3">
-                                    <button onClick={() => toggleStatus(a)}
-                                        className={'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold transition ' +
-                                            (a.status === 'published' ? 'bg-green-100 text-green-700 hover:bg-red-50 hover:text-red-600' : 'bg-amber-100 text-amber-700 hover:bg-green-50 hover:text-green-600')}>
-                                        {a.status === 'published' ? <ToggleRight size={13} /> : <ToggleLeft size={13} />}
-                                        {a.status === 'published' ? 'Publié' : 'Brouillon'}
-                                    </button>
-                                </td>
-                                <td className="px-4 py-3">
-                                    <button onClick={() => toggleFeatured(a)}>
-                                        <Star size={18} className={a.is_featured ? 'text-amber-400 fill-amber-400' : 'text-slate-300'} />
-                                    </button>
-                                </td>
-                                <td className="px-4 py-3">
-                                    <div className="flex items-center gap-2 justify-end">
-                                        <Link href={`/admin/articles/${a.id}/edit`}
-                                            className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-rose-600 hover:border-rose-300 transition">
-                                            <Pencil size={14} />
-                                        </Link>
-                                        <button onClick={() => destroy(a)}
-                                            className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-red-600 hover:border-red-300 transition">
-                                            <Trash2 size={14} />
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-                {!loading && filtered.length === 0 && (
-                    <div className="text-center py-12 text-slate-400">Aucun article trouvé.</div>
+                {loading ? (
+                    <DataTableLoading>
+                        <div className="w-6 h-6 border-2 border-brand-primary border-t-transparent rounded-full animate-spin mx-auto" />
+                    </DataTableLoading>
+                ) : filtered.length === 0 ? (
+                    <DataTableEmpty>
+                        <BookOpen size={32} className="text-brand-border mx-auto mb-2" />
+                        {articles.length === 0 ? 'Aucun article publié.' : 'Aucun article ne correspond à votre recherche.'}
+                    </DataTableEmpty>
+                ) : (
+                    <DataTableScroll>
+                        <table className="fs-table">
+                            <thead>
+                                <tr>
+                                    <th>Article</th>
+                                    <th className="hidden md:table-cell">Catégorie</th>
+                                    <th className="text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filtered.map(a => (
+                                    <tr key={a.id}>
+                                        <td>
+                                            <p className="font-semibold text-brand-ink line-clamp-1">{a.title}</p>
+                                            <p className="text-xs text-brand-muted line-clamp-2 mt-0.5 max-w-md">
+                                                {a.excerpt || '—'}
+                                            </p>
+                                            <p className="text-xs text-brand-primary mt-1 md:hidden">{getCategoryName(a)}</p>
+                                        </td>
+                                        <td className="hidden md:table-cell">
+                                            <span className="status-badge badge-completed">{getCategoryName(a)}</span>
+                                        </td>
+                                        <td>
+                                            <TableActionGroup>
+                                                <TableActionLink href={`/admin/articles/${a.id}/edit`} icon={Pencil}>
+                                                    Modifier
+                                                </TableActionLink>
+                                                <TableActionButton icon={Trash2} danger onClick={() => setDeleteTarget(a)}>
+                                                    Supprimer
+                                                </TableActionButton>
+                                            </TableActionGroup>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </DataTableScroll>
                 )}
-            </div>
+            </DataTable>
         </AdminLayout>
     );
 }

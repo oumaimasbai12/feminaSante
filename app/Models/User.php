@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Menopause\Menopause;
 use App\Models\Pregnancy\Pregnancy;
+use App\Models\Cycle;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -39,6 +40,11 @@ class User extends Authenticatable
         'remember_token',
     ];
 
+    protected $appends = [
+        'age',
+        'menopause_eligible',
+    ];
+
     protected function casts(): array
     {
         return [
@@ -49,6 +55,7 @@ class User extends Authenticatable
             'notification_settings' => 'array',
             'motDePasse' => 'hashed',
             'is_gynecologist' => 'boolean',
+            'is_admin' => 'boolean',
         ];
     }
 
@@ -59,6 +66,20 @@ class User extends Authenticatable
     public function getNameAttribute(): ?string
     {
         return $this->attributes['nom'] ?? null;
+    }
+
+    public function getAgeAttribute(): ?int
+    {
+        return $this->birth_date ? (int) $this->birth_date->age : null;
+    }
+
+    public function getMenopauseEligibleAttribute(): bool
+    {
+        if ($this->age === null) {
+            return false;
+        }
+
+        return $this->age >= (int) config('menopause.min_tracking_age', 45);
     }
 
     public function setNameAttribute(?string $value): void
@@ -85,6 +106,16 @@ class User extends Authenticatable
     {
         $this->attributes['motDePasse'] = $value;
         unset($this->attributes['password']);
+    }
+
+    public function cycles(): HasMany
+    {
+        return $this->hasMany(Cycle::class);
+    }
+
+    public function appointments(): HasMany
+    {
+        return $this->hasMany(\App\Models\Appointments\Appointment::class);
     }
 
     public function pregnancies(): HasMany

@@ -7,7 +7,9 @@ use Database\Factories\AppointmentFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Appointment extends Model
 {
@@ -26,8 +28,12 @@ class Appointment extends Model
         'consultation_type',
         'reason',
         'notes',
+        'patient_preparation',
         'is_first_visit',
         'cancellation_reason',
+        'reminder_24h_sent_at',
+        'reminder_2h_sent_at',
+        'follow_up_weeks',
         'rating',
         'review',
     ];
@@ -38,6 +44,8 @@ class Appointment extends Model
             'start_time' => 'datetime',
             'end_time' => 'datetime',
             'is_first_visit' => 'boolean',
+            'reminder_24h_sent_at' => 'datetime',
+            'reminder_2h_sent_at' => 'datetime',
         ];
     }
 
@@ -49,6 +57,17 @@ class Appointment extends Model
     public function gynecologist(): BelongsTo
     {
         return $this->belongsTo(Gynecologist::class);
+    }
+
+    public function sharedVisitSummary(): HasOne
+    {
+        return $this->hasOne(ClinicalNote::class, 'appointment_id')
+            ->where('shared_with_patient', true);
+    }
+
+    public function scopeBlocking(Builder $query): Builder
+    {
+        return $query->whereIn('status', config('appointments.blocking_statuses', ['pending', 'confirmed']));
     }
 
     protected static function newFactory(): Factory

@@ -4,17 +4,20 @@ namespace App\Http\Controllers\Api\Quiz;
 
 use App\Http\Controllers\Controller;
 use App\Models\Quiz\Quiz;
+use App\Services\QuizService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 class QuizController extends Controller
 {
+    public function __construct(private readonly QuizService $quizService)
+    {
+    }
+
     public function index(): JsonResponse
     {
-        return response()->json(
-            Quiz::withCount('questions')->latest()->get()
-        );
+        return response()->json($this->quizService->listQuizzes());
     }
 
     public function store(Request $request): JsonResponse
@@ -31,9 +34,10 @@ class QuizController extends Controller
 
         $quiz = Quiz::create([
             ...$data,
-            'slug' => Str::slug($data['title']) . '-' . time(),
+            'slug' => Str::slug($data['title']).'-'.time(),
             'difficulty' => $data['difficulty'] ?? 'beginner',
             'passing_score' => $data['passing_score'] ?? 70,
+            'time_limit' => $data['time_limit'] ?? 300,
             'attempt_count' => 0,
         ]);
 
@@ -43,10 +47,11 @@ class QuizController extends Controller
         ], 201);
     }
 
+    /** Admin / debug — includes correct answers. Prefer GET /play for users. */
     public function show(Quiz $quiz): JsonResponse
     {
         return response()->json(
-            $quiz->load('questions.options')
+            $quiz->load(['questions' => fn ($q) => $q->orderBy('display_order'), 'questions.options'])
         );
     }
 }

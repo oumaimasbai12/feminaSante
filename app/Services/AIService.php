@@ -14,7 +14,8 @@ class AIService
     public function __construct()
     {
         $this->apiKey = config('services.gemini.key', '');
-        $this->apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+        $model = config('services.gemini.model', 'gemini-3.1-flash-lite-preview');
+        $this->apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent";
 
         $this->systemPrompt = <<<PROMPT
 Tu es Femina, une assistante de santé féminine bienveillante et professionnelle sur la plateforme Femina Santé.

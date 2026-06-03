@@ -13,7 +13,10 @@ class DatabaseSeeder extends Seeder
             ArticleCategorySeeder::class,
             DiseaseCategorySeeder::class,
             StaticQuizSeeder::class,
+            MenopauseSymptomSeeder::class,
             GynecologistSeeder::class,
+            AvailabilitySeeder::class,
+            GynecologistUserSeeder::class,
             WikipediaArticleSeeder::class,
             GeminiContentSeeder::class,
         ]);

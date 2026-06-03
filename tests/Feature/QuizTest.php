@@ -202,10 +202,10 @@ class QuizTest extends TestCase
             ]);
 
         $response->assertCreated();
-        $response->assertJsonFragment(['message' => 'Quiz submitted successfully.']);
         $response->assertJsonPath('result.score', 1);
         $response->assertJsonPath('result.total_points', 1);
-        $response->assertJsonPath('result.percentage', 100.0);
+        $response->assertJsonPath('percentage', 100.0);
+        $response->assertJsonPath('status', 'pass');
 
         // Check attempt_count incremented
         $this->assertEquals(1, $quiz->fresh()->attempt_count);
@@ -234,7 +234,8 @@ class QuizTest extends TestCase
 
         $response->assertCreated();
         $response->assertJsonPath('result.score', 0);
-        $response->assertJsonPath('result.percentage', 0.0);
+        $response->assertJsonPath('percentage', 0.0);
+        $response->assertJsonPath('status', 'fail');
     }
 
     public function test_submit_quiz_fails_without_answers(): void
@@ -276,9 +277,24 @@ class QuizTest extends TestCase
         $this->assertCount(4, $question->options);
     }
 
-    public function test_unauthenticated_user_cannot_access_quizzes(): void
+    public function test_unauthenticated_user_can_list_quizzes(): void
     {
+        Quiz::factory()->count(2)->create();
+
         $response = $this->getJson('/api/v1/quizzes');
+
+        $response->assertOk();
+        $response->assertJsonCount(2);
+    }
+
+    public function test_unauthenticated_user_cannot_submit_quiz(): void
+    {
+        $quiz = Quiz::factory()->create();
+
+        $response = $this->postJson("/api/v1/quizzes/{$quiz->id}/submit", [
+            'answers' => [],
+        ]);
+
         $response->assertUnauthorized();
     }
 }

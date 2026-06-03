@@ -4,70 +4,41 @@ namespace App\Http\Controllers\Api\Quiz;
 
 use App\Http\Controllers\Controller;
 use App\Models\Quiz\Quiz;
-use App\Models\Quiz\QuizResult;
+use App\Services\QuizService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 
 class QuizResultController extends Controller
 {
+    public function __construct(private readonly QuizService $quizService)
+    {
+    }
+
     public function store(Request $request, Quiz $quiz): JsonResponse
     {
         $user = $request->user();
 
         if (! $user) {
-            return response()->json([
-                'message' => 'Unauthenticated.',
-            ], 401);
+            return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
         $data = $request->validate([
             'answers' => ['required', 'array'],
-            'time_spent' => ['nullable', 'integer'],
+            'time_spent' => ['nullable', 'integer', 'min:0'],
         ]);
 
-        $quiz->load('questions.options');
-
-        $score = 0;
-        $totalPoints = $quiz->questions->sum('points');
-
-        foreach ($quiz->questions as $question) {
-            $submitted = $data['answers'][$question->id] ?? null;
-            $correctOptionIds = $question->options
-                ->where('is_correct', true)
-                ->pluck('id')
-                ->sort()
-                ->values()
-                ->all();
-
-            $submittedIds = collect((array) $submitted)->map(fn ($id) => (int) $id)->sort()->values()->all();
-
-            if ($submittedIds === $correctOptionIds) {
-                $score += $question->points;
-            }
-        }
-
-        $percentage = $totalPoints > 0 ? round(($score / $totalPoints) * 100, 2) : 0;
-
-        $result = QuizResult::create([
-            'user_id' => $user->id,
-            'quiz_id' => $quiz->id,
-            'score' => $score,
-            'total_points' => $totalPoints,
-            'percentage' => $percentage,
-            'answers' => $data['answers'],
-            'time_spent' => $data['time_spent'] ?? null,
-            'completed_at' => Carbon::now(),
-        ]);
-
-        $quiz->increment('attempt_count');
-        $quiz->update([
-            'average_score' => QuizResult::where('quiz_id', $quiz->id)->avg('percentage'),
-        ]);
+        $payload = $this->quizService->submitQuiz(
+            $user,
+            $quiz,
+            $data['answers'],
+            $data['time_spent'] ?? null
+        );
 
         return response()->json([
-            'message' => 'Quiz submitted successfully.',
-            'result' => $result,
+            'message' => $payload['passed']
+                ? 'Quiz passed successfully.'
+                : 'Quiz completed. Keep learning!',
+            ...$payload,
         ], 201, [], JSON_PRESERVE_ZERO_FRACTION);
     }
 }

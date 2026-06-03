@@ -1,117 +1,133 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { CheckCircle2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { CheckCircle2, BookOpen } from 'lucide-react';
+import GlassCard from '@/Components/UI/GlassCard';
 
-export default function SymptomLogger({ onSave }) {
-    const [menopause, setMenopause] = useState(null);
-    const [loading, setLoading] = useState(true);
+const api = () => window.axios;
+
+export default function SymptomLogger({ menopauseId, symptomCatalog = [], onSave }) {
     const [saving, setSaving] = useState(false);
     const [success, setSuccess] = useState(false);
+    const [error, setError] = useState('');
 
     const [formData, setFormData] = useState({
         log_date: new Date().toISOString().split('T')[0],
         severity: 'moderate',
         sleep_quality: 5,
         mood_score: 5,
+        stress_level: 5,
+        caffeine_cups: 0,
+        exercise_minutes: 0,
+        alcohol_units: 0,
         hot_flashes: false,
         night_sweats: false,
         mood_changes: false,
         sleep_changes: false,
-        symptoms: [],
+        notes: '',
+        selectedSymptoms: [],
     });
 
-    useEffect(() => {
-        axios.get('/api/v1/menopauses')
-            .then(res => {
-                if (res.data && res.data.length > 0) {
-                    setMenopause(res.data[0]);
-                }
-                setLoading(false);
-            })
-            .catch(err => {
-                console.error(err);
-                setLoading(false);
-            });
-    }, []);
+    const toggleCatalogSymptom = (symptomId) => {
+        setFormData(prev => {
+            const exists = prev.selectedSymptoms.find(s => s.symptom_id === symptomId);
+            if (exists) {
+                return { ...prev, selectedSymptoms: prev.selectedSymptoms.filter(s => s.symptom_id !== symptomId) };
+            }
+            return { ...prev, selectedSymptoms: [...prev.selectedSymptoms, { symptom_id: symptomId, intensity: 2 }] };
+        });
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!menopause) return;
+        if (!menopauseId) return;
 
         setSaving(true);
+        setError('');
         try {
-            await axios.post(`/api/v1/menopauses/${menopause.id}/symptom-logs`, formData);
+            const payload = {
+                log_date: formData.log_date,
+                severity: formData.severity,
+                sleep_quality: formData.sleep_quality,
+                mood_score: formData.mood_score,
+                stress_level: formData.stress_level,
+                caffeine_cups: formData.caffeine_cups,
+                exercise_minutes: formData.exercise_minutes,
+                alcohol_units: formData.alcohol_units,
+                hot_flashes: formData.hot_flashes,
+                night_sweats: formData.night_sweats,
+                mood_changes: formData.mood_changes,
+                sleep_changes: formData.sleep_changes,
+                notes: formData.notes || null,
+                catalog_symptoms: formData.selectedSymptoms,
+            };
+
+            await api().post(`/api/v1/menopauses/${menopauseId}/symptom-logs`, payload);
             setSuccess(true);
             setTimeout(() => setSuccess(false), 3000);
-            
-            if (onSave) {
-                onSave();
-            }
+            if (onSave) onSave();
 
-            setFormData({
-                ...formData,
+            setFormData(prev => ({
+                ...prev,
                 hot_flashes: false,
                 night_sweats: false,
                 mood_changes: false,
                 sleep_changes: false,
-                symptoms: [],
-            });
-        } catch (error) {
-            console.error('Error logging symptoms', error);
+                selectedSymptoms: [],
+                notes: '',
+            }));
+        } catch (err) {
+            setError(err.response?.data?.message || 'Erreur lors de l\'enregistrement.');
+            console.error('Error logging symptoms', err);
         } finally {
             setSaving(false);
         }
     };
 
-    if (loading) {
+    if (!menopauseId) {
         return (
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-rose-600"></div>
-            </div>
-        );
-    }
-
-    if (!menopause) {
-        return (
-            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm text-center">
-                <p className="text-slate-500">Configurez votre profil ménopause pour suivre vos symptômes.</p>
-            </div>
+            <GlassCard className="p-8 text-center">
+                <p className="text-brand-muted">Configurez votre profil ménopause pour suivre vos symptômes.</p>
+            </GlassCard>
         );
     }
 
     return (
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-            <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-500">
-                    <CheckCircle2 size={18} />
-                </div>
+        <GlassCard className="p-5 sm:p-6">
+            <h3 className="text-base font-bold text-brand-ink mb-1 flex items-center gap-2">
+                <BookOpen size={18} className="text-brand-primary" />
                 Journal des symptômes
             </h3>
+            <p className="text-sm text-brand-muted mb-6">
+                Notez chaque jour votre humeur, sommeil et facteurs de mode de vie.
+            </p>
 
             {success && (
                 <div className="mb-6 p-4 bg-green-100 text-green-700 rounded-xl font-semibold flex items-center gap-2">
-                    <CheckCircle2 size={18} className="flex-shrink-0" />
+                    <CheckCircle2 size={18} />
                     Symptômes enregistrés avec succès !
                 </div>
+            )}
+
+            {error && (
+                <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-xl text-sm">{error}</div>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">Date</label>
+                        <label className="block text-sm font-semibold text-brand-ink mb-2">Date</label>
                         <input
                             type="date"
                             value={formData.log_date}
                             onChange={(e) => setFormData({ ...formData, log_date: e.target.value })}
-                            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none transition-all"
+                            className="input-field"
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">Sévérité</label>
+                        <label className="block text-sm font-semibold text-brand-ink mb-2">Sévérité globale</label>
                         <select
                             value={formData.severity}
                             onChange={(e) => setFormData({ ...formData, severity: e.target.value })}
-                            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 focus:border-rose-500 focus:ring-2 focus:ring-rose-100 outline-none transition-all"
+                            className="input-field"
                         >
                             <option value="mild">Légère</option>
                             <option value="moderate">Modérée</option>
@@ -120,91 +136,77 @@ export default function SymptomLogger({ onSave }) {
                     </div>
                 </div>
 
-                <div className="space-y-3 bg-slate-50 p-5 rounded-2xl border border-slate-100">
-                    <p className="text-sm font-semibold text-slate-700">Cochez ce que vous ressentez :</p>
-                    <div className="grid grid-cols-2 gap-3">
-                        <label className="flex items-center space-x-3 bg-white p-3 rounded-xl border border-slate-100 cursor-pointer hover:border-rose-200 transition">
-                            <input 
-                                type="checkbox" 
-                                checked={formData.hot_flashes} 
-                                onChange={e => setFormData({ ...formData, hot_flashes: e.target.checked })} 
-                                className="rounded text-rose-600 focus:ring-rose-500 w-5 h-5" 
-                            />
-                            <span className="text-slate-700 font-medium">Bouffées de chaleur</span>
-                        </label>
-                        <label className="flex items-center space-x-3 bg-white p-3 rounded-xl border border-slate-100 cursor-pointer hover:border-rose-200 transition">
-                            <input 
-                                type="checkbox" 
-                                checked={formData.night_sweats} 
-                                onChange={e => setFormData({ ...formData, night_sweats: e.target.checked })} 
-                                className="rounded text-rose-600 focus:ring-rose-500 w-5 h-5" 
-                            />
-                            <span className="text-slate-700 font-medium">Sueurs nocturnes</span>
-                        </label>
-                        <label className="flex items-center space-x-3 bg-white p-3 rounded-xl border border-slate-100 cursor-pointer hover:border-rose-200 transition">
-                            <input 
-                                type="checkbox" 
-                                checked={formData.mood_changes} 
-                                onChange={e => setFormData({ ...formData, mood_changes: e.target.checked })} 
-                                className="rounded text-rose-600 focus:ring-rose-500 w-5 h-5" 
-                            />
-                            <span className="text-slate-700 font-medium">Sautes d'humeur</span>
-                        </label>
-                        <label className="flex items-center space-x-3 bg-white p-3 rounded-xl border border-slate-100 cursor-pointer hover:border-rose-200 transition">
-                            <input 
-                                type="checkbox" 
-                                checked={formData.sleep_changes} 
-                                onChange={e => setFormData({ ...formData, sleep_changes: e.target.checked })} 
-                                className="rounded text-rose-600 focus:ring-rose-500 w-5 h-5" 
-                            />
-                            <span className="text-slate-700 font-medium">Troubles du sommeil</span>
-                        </label>
+                {symptomCatalog.length > 0 && (
+                    <div className="space-y-3 bg-brand-bg/60 p-5 rounded-2xl border border-brand-border">
+                        <p className="text-sm font-semibold text-brand-ink">Symptômes du jour (catalogue) :</p>
+                        <div className="grid grid-cols-2 gap-2">
+                            {symptomCatalog.map(symptom => (
+                                <label key={symptom.id} className="flex items-center space-x-2 bg-white p-2 rounded-xl border border-brand-border cursor-pointer hover:border-brand-primary/40 text-sm">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.selectedSymptoms.some(s => s.symptom_id === symptom.id)}
+                                        onChange={() => toggleCatalogSymptom(symptom.id)}
+                                        className="rounded text-brand-primary focus:ring-brand-primary/30"
+                                    />
+                                    <span className="text-brand-ink">{symptom.name_fr}</span>
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                <div className="space-y-3 bg-brand-bg/60 p-5 rounded-2xl border border-brand-border">
+                    <p className="text-sm font-semibold text-brand-ink">Facteurs de mode de vie :</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <SliderField label="Niveau de stress" value={formData.stress_level} onChange={v => setFormData({ ...formData, stress_level: v })} min={1} max={10} low="Faible" high="Élevé" />
+                        <SliderField label="Qualité du sommeil" value={formData.sleep_quality} onChange={v => setFormData({ ...formData, sleep_quality: v })} min={1} max={10} low="Mauvais" high="Excellent" />
+                        <SliderField label="Humeur générale" value={formData.mood_score} onChange={v => setFormData({ ...formData, mood_score: v })} min={1} max={10} low="Difficile" high="Excellente" />
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                        <NumberField label="Café (tasses)" value={formData.caffeine_cups} onChange={v => setFormData({ ...formData, caffeine_cups: v })} max={20} />
+                        <NumberField label="Exercice (min)" value={formData.exercise_minutes} onChange={v => setFormData({ ...formData, exercise_minutes: v })} max={600} />
+                        <NumberField label="Alcool (unités)" value={formData.alcohol_units} onChange={v => setFormData({ ...formData, alcohol_units: v })} max={20} />
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">Qualité du sommeil (1-10)</label>
-                        <input
-                            type="range" 
-                            min="1" 
-                            max="10"
-                            value={formData.sleep_quality}
-                            onChange={(e) => setFormData({ ...formData, sleep_quality: parseInt(e.target.value) })}
-                            className="w-full accent-rose-600"
-                        />
-                        <div className="flex justify-between text-xs text-slate-500 mt-1">
-                            <span>Mauvais</span>
-                            <span className="font-bold text-rose-700">{formData.sleep_quality}/10</span>
-                            <span>Excellent</span>
-                        </div>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">Humeur générale (1-10)</label>
-                        <input
-                            type="range" 
-                            min="1" 
-                            max="10"
-                            value={formData.mood_score}
-                            onChange={(e) => setFormData({ ...formData, mood_score: parseInt(e.target.value) })}
-                            className="w-full accent-rose-600"
-                        />
-                        <div className="flex justify-between text-xs text-slate-500 mt-1">
-                            <span>Difficile</span>
-                            <span className="font-bold text-rose-700">{formData.mood_score}/10</span>
-                            <span>Excellente</span>
-                        </div>
-                    </div>
+                <div>
+                    <label className="block text-sm font-semibold text-brand-ink mb-2">Notes</label>
+                    <textarea
+                        rows={2}
+                        value={formData.notes}
+                        onChange={e => setFormData({ ...formData, notes: e.target.value })}
+                        className="input-field resize-none"
+                        placeholder="Observations du jour..."
+                    />
                 </div>
 
                 <button
                     type="submit"
                     disabled={saving}
-                    className="w-full px-5 py-3 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 text-white font-semibold hover:from-rose-600 hover:to-rose-700 transition-all shadow-sm disabled:opacity-50"
+                    className="w-full btn-primary disabled:opacity-50"
                 >
                     {saving ? 'Enregistrement...' : 'Enregistrer les symptômes'}
                 </button>
             </form>
+        </GlassCard>
+    );
+}
+
+function SliderField({ label, value, onChange, min, max, low, high }) {
+    return (
+        <div>
+            <label className="block text-sm font-semibold text-brand-ink mb-2">{label} ({value}/{max})</label>
+            <input type="range" min={min} max={max} value={value} onChange={e => onChange(parseInt(e.target.value, 10))} className="w-full accent-brand-primary" />
+            <div className="flex justify-between text-xs text-brand-muted mt-1"><span>{low}</span><span>{high}</span></div>
+        </div>
+    );
+}
+
+function NumberField({ label, value, onChange, max }) {
+    return (
+        <div>
+            <label className="block text-xs font-semibold text-brand-ink mb-1">{label}</label>
+            <input type="number" min={0} max={max} value={value} onChange={e => onChange(parseInt(e.target.value, 10) || 0)} className="input-field py-2" />
         </div>
     );
 }
