@@ -8,6 +8,7 @@ use App\Models\Pregnancy\PregnancyMilestone;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
 
 class PregnancyService
 {
@@ -148,15 +149,24 @@ class PregnancyService
 
     public function buildMedicalExport(Pregnancy $pregnancy): array
     {
-        $pregnancy->load([
+        if (! $pregnancy->start_date) {
+            throw new \InvalidArgumentException('La date des dernières règles est requise pour générer le PDF.');
+        }
+
+        $relations = [
             'milestones',
             'checkups',
             'weightGains',
             'kickCounters',
             'contractions',
-            'symptoms',
             'user:id,nom,email,birth_date,blood_type',
-        ]);
+        ];
+
+        if (Schema::hasTable('pregnancy_symptoms')) {
+            $relations[] = 'symptoms';
+        }
+
+        $pregnancy->load($relations);
 
         $week = $this->getGestationalWeek($pregnancy);
 
@@ -164,18 +174,18 @@ class PregnancyService
             'generated_at' => now()->toIso8601String(),
             'disclaimer' => 'Ce document est un résumé informatif et ne remplace pas un dossier médical officiel.',
             'patient' => [
-                'name' => $pregnancy->user->nom,
-                'email' => $pregnancy->user->email,
-                'birth_date' => optional($pregnancy->user->birth_date)->toDateString(),
-                'blood_type' => $pregnancy->user->blood_type,
+                'name' => $pregnancy->user?->nom,
+                'email' => $pregnancy->user?->email,
+                'birth_date' => $pregnancy->user?->birth_date?->toDateString(),
+                'blood_type' => $pregnancy->user?->blood_type,
             ],
             'pregnancy' => [
                 'start_date' => $pregnancy->start_date->toDateString(),
-                'due_date' => optional($pregnancy->due_date)->toDateString(),
+                'due_date' => $pregnancy->due_date?->toDateString(),
                 'current_week' => $week,
-                'pregnancy_type' => $pregnancy->pregnancy_type,
-                'statuts' => $pregnancy->statuts,
-                'high_risk' => $pregnancy->high_risk,
+                'pregnancy_type' => $pregnancy->pregnancy_type ?? 'simple',
+                'statuts' => $pregnancy->statuts ?? 'ongoing',
+                'high_risk' => (bool) $pregnancy->high_risk,
                 'risk_factors' => $pregnancy->risk_factors,
                 'allergies' => $pregnancy->allergies,
                 'medical_conditions' => $pregnancy->medical_conditions,
@@ -186,7 +196,7 @@ class PregnancyService
             'weight_gains' => $pregnancy->weightGains,
             'kick_counters' => $pregnancy->kickCounters,
             'contractions' => $pregnancy->contractions,
-            'symptoms' => $pregnancy->symptoms,
+            'symptoms' => $pregnancy->relationLoaded('symptoms') ? $pregnancy->symptoms : collect(),
             'weekly_tip' => $this->getWeeklyTip($week),
         ];
     }
@@ -196,7 +206,9 @@ class PregnancyService
         $export = $this->buildMedicalExport($pregnancy);
 
         return Pdf::loadView('exports.pregnancy-medical-summary', compact('export'))
-            ->setPaper('a4', 'portrait');
+            ->setPaper('a4', 'portrait')
+            ->setOption('isRemoteEnabled', false)
+            ->setOption('defaultFont', 'DejaVu Sans');
     }
 
     public function sendWeeklyReminders(): int
