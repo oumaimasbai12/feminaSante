@@ -206,9 +206,14 @@ function KickCounterTab({ pregnancyId }) {
                             </div>
                         )}
 
-                        <button onClick={endSession} disabled={saving}
-                            className="text-sm font-semibold text-red-500 hover:text-red-700 transition-colors flex items-center gap-1 mx-auto">
-                            <Square size={14} /> {saving ? 'Enregistrement...' : 'Terminer et enregistrer'}
+                        <button
+                            type="button"
+                            onClick={endSession}
+                            disabled={saving}
+                            className="btn-secondary border-red-200 text-red-700 hover:bg-red-50 px-8 py-3 text-sm inline-flex items-center gap-2 mx-auto disabled:opacity-50"
+                        >
+                            <Square size={16} />
+                            {saving ? 'Enregistrement...' : 'Terminer et enregistrer'}
                         </button>
                     </div>
                 )}
@@ -216,16 +221,23 @@ function KickCounterTab({ pregnancyId }) {
 
             {/* History */}
             {history.length > 0 && (
-                <div className="glass-card">
+                <div className="glass-card p-5 sm:p-6">
                     <h4 className="font-bold text-brand-ink mb-4 flex items-center gap-2">
                         <Clock size={16} className="text-brand-primary" /> Historique récent
                     </h4>
                     <div className="space-y-2">
                         {history.map((h, i) => (
-                            <div key={h.id || i} className="flex items-center justify-between p-3 rounded-xl bg-brand-soft border border-brand-border">
-                                <div>
+                            <div key={h.id || i} className="flex items-center justify-between gap-3 p-4 rounded-xl bg-brand-soft border border-brand-border">
+                                <div className="min-w-0">
                                     <p className="font-semibold text-brand-ink text-sm">{h.kicks_count} mouvement{h.kicks_count > 1 ? 's' : ''}</p>
-                                    <p className="text-xs text-brand-muted">{h.date} · {h.start_time} - {h.end_time || '?'}</p>
+                                    <p className="text-xs text-brand-muted mt-0.5">
+                                        {new Date(String(h.date).includes('T') ? h.date : `${h.date}T12:00:00`).toLocaleDateString('fr-FR', {
+                                            day: 'numeric',
+                                            month: 'long',
+                                            year: 'numeric',
+                                        })}{' '}
+                                        · {String(h.start_time || '').slice(0, 5)} - {String(h.end_time || '?').slice(0, 5)}
+                                    </p>
                                 </div>
                                 <span className={`px-2 py-1 rounded-lg text-xs font-bold ${h.activity_level === 'high' ? 'bg-green-100 text-green-700' : h.activity_level === 'normal' ? 'bg-yellow-100 text-yellow-700' : 'bg-orange-100 text-orange-700'}`}>
                                     {h.activity_level === 'high' ? 'Élevé' : h.activity_level === 'normal' ? 'Normal' : 'Faible'}
