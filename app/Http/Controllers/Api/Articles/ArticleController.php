@@ -23,11 +23,12 @@ class ArticleController extends Controller
     {
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
-            'excerpt' => ['nullable', 'string'],
+            'excerpt' => ['required', 'string'],
             'content' => ['required', 'string'],
-            'category_id' => ['nullable', 'exists:article_categories,id'],
+            'category_id' => ['required', 'exists:article_categories,id'],
             'featured_image' => ['nullable', 'string'],
-            'tags' => ['nullable', 'array'],
+            'tags' => ['required', 'array', 'min:1'],
+            'tags.*' => ['required', 'string'],
             'status' => ['nullable', 'in:draft,published,archived'],
             'published_at' => ['nullable', 'date'],
             'read_time' => ['nullable', 'integer'],
@@ -36,11 +37,18 @@ class ArticleController extends Controller
             'is_premium' => ['nullable', 'boolean'],
         ]);
 
+        $status = $data['status'] ?? 'draft';
+        $publishedAt = $data['published_at'] ?? null;
+        if ($status === 'published' && $publishedAt === null) {
+            $publishedAt = now();
+        }
+
         $article = Article::create([
             ...$data,
             'slug' => Str::slug($data['title']) . '-' . time(),
             'author_id' => $request->user()->id,
-            'status' => $data['status'] ?? 'draft',
+            'status' => $status,
+            'published_at' => $publishedAt,
             'views_count' => 0,
             'likes_count' => 0,
             'shares_count' => 0,
@@ -70,16 +78,25 @@ class ArticleController extends Controller
     public function update(Request $request, Article $article): JsonResponse
     {
         $data = $request->validate([
-            'title' => ['sometimes', 'string', 'max:255'],
-            'excerpt' => ['nullable', 'string'],
-            'content' => ['nullable', 'string'],
-            'category_id' => ['nullable', 'exists:article_categories,id'],
-            'tags' => ['nullable', 'array'],
+            'title' => ['required', 'string', 'max:255'],
+            'excerpt' => ['required', 'string'],
+            'content' => ['required', 'string'],
+            'category_id' => ['required', 'exists:article_categories,id'],
+            'tags' => ['required', 'array', 'min:1'],
+            'tags.*' => ['required', 'string'],
             'status' => ['nullable', 'in:draft,published,archived'],
+            'published_at' => ['nullable', 'date'],
             'is_featured' => ['nullable', 'boolean'],
             'is_premium' => ['nullable', 'boolean'],
             'read_time' => ['nullable', 'integer'],
         ]);
+
+        if (($data['status'] ?? $article->status) === 'published'
+            && empty($data['published_at'])
+            && $article->published_at === null) {
+            $data['published_at'] = now();
+        }
+
         $article->update($data);
         return response()->json([
             'message' => 'Article updated.',

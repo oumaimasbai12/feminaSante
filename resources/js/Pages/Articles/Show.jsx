@@ -119,10 +119,10 @@ export default function ArticleShow() {
                     )}
 
                     <div className="flex flex-wrap items-center gap-4 text-sm text-brand-muted mb-6 pb-6 border-b border-brand-border">
-                        {article.published_at && (
+                        {(article.published_at || article.created_at) && (
                             <span className="flex items-center gap-1.5">
                                 <Clock size={14} />
-                                {new Date(article.published_at).toLocaleDateString('fr-FR', {
+                                {new Date(article.published_at || article.created_at).toLocaleDateString('fr-FR', {
                                     month: 'long',
                                     day: 'numeric',
                                     year: 'numeric',

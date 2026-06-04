@@ -8,6 +8,8 @@ import { Search, BookOpen, ArrowRight, Tag, Sparkles } from 'lucide-react';
 const getCategoryName = (article) =>
     article?.category?.nom || article?.category?.name || article?.category || 'Santé';
 
+const getArticleDate = (article) => article?.published_at || article?.created_at;
+
 function ArticleThumb({ large = false }) {
     return (
         <div
@@ -195,9 +197,9 @@ export default function Articles() {
                                             <Sparkles size={12} /> À la une
                                         </span>
                                     )}
-                                    {featured.published_at && (
+                                    {getArticleDate(featured) && (
                                         <span className="text-xs text-brand-muted">
-                                            {formatDate(featured.published_at)}
+                                            {formatDate(getArticleDate(featured))}
                                         </span>
                                     )}
                                 </div>
@@ -236,8 +238,8 @@ export default function Articles() {
                                     {a.excerpt}
                                 </p>
                                 <div className="flex items-center justify-between text-xs mt-auto pt-2 border-t border-brand-border">
-                                    {a.published_at ? (
-                                        <span className="text-brand-muted">{formatDate(a.published_at)}</span>
+                                    {getArticleDate(a) ? (
+                                        <span className="text-brand-muted">{formatDate(getArticleDate(a))}</span>
                                     ) : (
                                         <span />
                                     )}

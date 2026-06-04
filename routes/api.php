@@ -164,6 +164,7 @@ Route::prefix('v1')->group(function () {
 
         // ── ADMIN ────────────────────────────────────────
         Route::prefix('admin')->middleware('admin')->group(function () {
+            Route::get('/wikipedia-import', \App\Http\Controllers\Api\Admin\WikipediaImportController::class);
             Route::get('/dashboard', \App\Http\Controllers\Api\Admin\AdminDashboardController::class);
             Route::get('/appointments', [\App\Http\Controllers\Api\Admin\AdminAppointmentController::class, 'index']);
             Route::apiResource('/users', \App\Http\Controllers\Api\Admin\UserController::class)->only(['index', 'show', 'destroy']);

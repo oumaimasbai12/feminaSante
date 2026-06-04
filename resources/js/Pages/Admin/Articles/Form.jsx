@@ -11,7 +11,7 @@ export default function ArticleForm() {
     const [categories, setCategories] = useState([]);
     const [form, setForm] = useState({
         title: '', excerpt: '', content: '', category_id: '',
-        tags: '', read_time: 3,
+        tags: '',
     });
     const [saving, setSaving] = useState(false);
     const [fetching, setFetching] = useState(false);
@@ -25,7 +25,7 @@ export default function ArticleForm() {
         if (isEdit && id) {
             window.axios.get(`/api/v1/articles/${id}`)
                 .then(r => {
-                    const data = r.data;
+                    const { read_time: _readTime, ...data } = r.data;
                     setForm({
                         ...data,
                         tags: Array.isArray(data.tags) ? data.tags.join(', ') : '',
@@ -37,52 +37,46 @@ export default function ArticleForm() {
     const fetchWikipedia = async () => {
         if (!wikiTopic.trim()) return;
         setFetching(true);
+        setMsg(null);
         try {
-            const search = await fetch(
-                `https://fr.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(wikiTopic)}`
-            );
-            const data = await search.json();
-            if (data.title) {
-                const full = await fetch(
-                    `https://fr.wikipedia.org/api/rest_v1/page/mobile-sections/${encodeURIComponent(wikiTopic)}`
-                );
-                const fullData = await full.json();
-                let content = '';
-                if (fullData.lead?.sections) {
-                    fullData.lead.sections.forEach(section => {
-                        if (section.text) content += section.text;
-                    });
-                }
-                if (fullData.remaining?.sections) {
-                    fullData.remaining.sections.slice(0, 6).forEach(section => {
-                        if (section.text) {
-                            content += `<h3 class="text-lg font-bold text-brand-ink mt-6 mb-3">${section.line}</h3>`;
-                            content += section.text;
-                        }
-                    });
-                }
-                content += `<div class="bg-amber-50 border border-amber-200 rounded-xl p-6 mt-6"><p><strong>Information médicale</strong> : Cet article est fourni à titre éducatif uniquement. Il ne remplace pas l'avis d'un professionnel de santé. Source : <a href="https://fr.wikipedia.org/wiki/${encodeURIComponent(wikiTopic)}" target="_blank" class="text-brand-primary font-semibold underline">Wikipédia</a>.</p></div>`;
-
-                setForm(f => ({
-                    ...f,
-                    title: data.title,
-                    excerpt: data.extract?.slice(0, 300) + '...',
-                    content,
-                    read_time: Math.ceil((data.extract?.split(' ').length || 100) / 200),
-                }));
-                setMsg({ ok: true, text: `Article "${data.title}" importé depuis Wikipédia !` });
-            } else {
-                setMsg({ ok: false, text: 'Sujet introuvable sur Wikipédia.' });
-            }
-        } catch {
-            setMsg({ ok: false, text: 'Erreur lors de la récupération Wikipédia.' });
+            const { data: res } = await window.axios.get('/api/v1/admin/wikipedia-import', {
+                params: { topic: wikiTopic.trim() },
+            });
+            const data = res.data;
+            setForm(f => ({
+                ...f,
+                title: data.title,
+                excerpt: data.excerpt,
+                content: data.content,
+            }));
+            setMsg({ ok: true, text: `Article "${data.title}" importé depuis Wikipédia !` });
+        } catch (e) {
+            const message = e.response?.status === 404
+                ? 'Sujet introuvable sur Wikipédia.'
+                : (e.response?.data?.message || 'Erreur lors de la récupération Wikipédia.');
+            setMsg({ ok: false, text: message });
         } finally {
             setFetching(false);
             setTimeout(() => setMsg(null), 4000);
         }
     };
 
+    const validateForm = () => {
+        if (!form.title.trim()) return 'Le titre est obligatoire.';
+        if (!form.category_id) return 'La catégorie est obligatoire.';
+        if (!form.excerpt.trim()) return "L'extrait est obligatoire.";
+        if (!form.content.trim()) return 'Le contenu est obligatoire.';
+        if (!form.tags.trim()) return 'Les tags sont obligatoires.';
+        return null;
+    };
+
     const save = async () => {
+        const validationError = validateForm();
+        if (validationError) {
+            setMsg({ ok: false, text: validationError });
+            return;
+        }
+
         setSaving(true);
         setMsg(null);
         try {
@@ -142,41 +136,70 @@ export default function ArticleForm() {
                 </div>
             )}
 
-            <div className="glass-card p-6 space-y-5 max-w-4xl">
+            <form
+                className="glass-card p-6 space-y-5 max-w-4xl"
+                noValidate
+                onSubmit={e => {
+                    e.preventDefault();
+                    save();
+                }}
+            >
                 <div>
                     <label className="block text-sm font-semibold text-brand-ink mb-2">Titre *</label>
-                    <input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="input-field" />
+                    <input
+                        value={form.title}
+                        onChange={e => setForm({ ...form, title: e.target.value })}
+                        className="input-field"
+                        required
+                    />
                 </div>
                 <div>
-                    <label className="block text-sm font-semibold text-brand-ink mb-2">Catégorie</label>
-                    <select value={form.category_id} onChange={e => setForm({ ...form, category_id: e.target.value })} className="input-field">
+                    <label className="block text-sm font-semibold text-brand-ink mb-2">Catégorie *</label>
+                    <select
+                        value={form.category_id}
+                        onChange={e => setForm({ ...form, category_id: e.target.value })}
+                        className="input-field"
+                        required
+                    >
                         <option value="">Choisir une catégorie...</option>
                         {categories.map(c => <option key={c.id} value={c.id}>{c.nom}</option>)}
                     </select>
                 </div>
                 <div>
-                    <label className="block text-sm font-semibold text-brand-ink mb-2">Extrait</label>
-                    <textarea value={form.excerpt} onChange={e => setForm({ ...form, excerpt: e.target.value })} rows={3} className="input-field resize-none" />
+                    <label className="block text-sm font-semibold text-brand-ink mb-2">Extrait *</label>
+                    <textarea
+                        value={form.excerpt}
+                        onChange={e => setForm({ ...form, excerpt: e.target.value })}
+                        rows={3}
+                        className="input-field resize-none"
+                        required
+                    />
                 </div>
                 <div>
-                    <label className="block text-sm font-semibold text-brand-ink mb-2">Contenu</label>
-                    <textarea value={form.content} onChange={e => setForm({ ...form, content: e.target.value })} rows={15} className="input-field resize-none font-mono" />
+                    <label className="block text-sm font-semibold text-brand-ink mb-2">Contenu *</label>
+                    <textarea
+                        value={form.content}
+                        onChange={e => setForm({ ...form, content: e.target.value })}
+                        rows={15}
+                        className="input-field resize-none font-mono"
+                        required
+                    />
                 </div>
-                <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-sm font-semibold text-brand-ink mb-2">Tags (séparés par virgule)</label>
-                        <input value={form.tags} onChange={e => setForm({ ...form, tags: e.target.value })} placeholder="grossesse, santé, nutrition" className="input-field" />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-semibold text-brand-ink mb-2">Temps de lecture (min)</label>
-                        <input type="number" value={form.read_time} onChange={e => setForm({ ...form, read_time: parseInt(e.target.value, 10) })} className="input-field" />
-                    </div>
+                <div>
+                    <label className="block text-sm font-semibold text-brand-ink mb-2">Tags (séparés par virgule) *</label>
+                    <input
+                        value={form.tags}
+                        onChange={e => setForm({ ...form, tags: e.target.value })}
+                        placeholder="grossesse, santé, nutrition"
+                        className="input-field"
+                        required
+                    />
                 </div>
-                <button type="button" onClick={save} disabled={saving} className="w-full btn-primary">
+                <button type="submit" disabled={saving} className="w-full btn-primary">
                     {saving ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Save size={16} />}
                     {isEdit ? 'Enregistrer les modifications' : 'Créer l\'article'}
                 </button>
-            </div>
+            </form>
         </AdminLayout>
     );
 }

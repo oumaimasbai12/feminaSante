@@ -97,14 +97,20 @@ class ArticleTest extends TestCase
         $response->assertJsonFragment(['message' => 'Article created successfully.']);
         $response->assertJsonPath('article.is_featured', false);
         $response->assertJsonPath('article.is_premium', false);
+        $this->assertNotNull($response->json('article.published_at'));
     }
 
     public function test_create_article_defaults(): void
     {
+        $category = ArticleCategory::factory()->create();
+
         $response = $this->withToken($this->token)
             ->postJson('/api/v1/articles', [
                 'title' => 'Article test',
                 'content' => 'Contenu test',
+                'excerpt' => 'Extrait test',
+                'category_id' => $category->id,
+                'tags' => ['santé'],
             ]);
 
         $response->assertCreated();
@@ -119,15 +125,20 @@ class ArticleTest extends TestCase
             ->postJson('/api/v1/articles', []);
 
         $response->assertUnprocessable();
-        $response->assertJsonValidationErrors(['title', 'content']);
+        $response->assertJsonValidationErrors(['title', 'excerpt', 'content', 'category_id', 'tags']);
     }
 
     public function test_create_article_fails_with_invalid_status(): void
     {
+        $category = ArticleCategory::factory()->create();
+
         $response = $this->withToken($this->token)
             ->postJson('/api/v1/articles', [
                 'title' => 'Article test',
                 'content' => 'Contenu',
+                'excerpt' => 'Extrait',
+                'category_id' => $category->id,
+                'tags' => ['santé'],
                 'status' => 'invalid',
             ]);
 
